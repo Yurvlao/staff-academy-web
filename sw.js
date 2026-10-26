@@ -1,5 +1,5 @@
 'use strict';
-const RELEASE = '4dc3fa23e115ddb040a2';
+const RELEASE = '4a1fa33d63610326bab1';
 const PREFIX = 'staff-academy-' + new URL(self.registration.scope).pathname.replace(/[^a-z0-9]/gi, '_') + '-';
 const CACHE = PREFIX + RELEASE;
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './progress.js', './legacy-map.js', './pwa.js', './pwa.css', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];

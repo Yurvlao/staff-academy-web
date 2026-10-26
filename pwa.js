@@ -4,7 +4,7 @@
   const section = document.createElement('section');
   section.className = 'settings';
   section.setAttribute('aria-label', 'Прогресс и обновления');
-  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">4dc3fa23e115ddb040a2</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
+  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">4a1fa33d63610326bab1</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
   document.querySelector('main').append(section);
   const $ = id => document.getElementById(id);
   function status(text, error = false) {
@@ -15,6 +15,57 @@
     storageError = true;
     status('Прогресс не удалось прочитать или сохранить. Исходные данные не удалены. ' + error.message, true);
   }
+  let questionBank = [];
+  const menuButton = document.createElement('button');
+  menuButton.type = 'button';
+  menuButton.className = 'progress-menu-button';
+  menuButton.id = 'openProgressMenu';
+  menuButton.setAttribute('aria-label', 'Открыть меню прогресса');
+  menuButton.setAttribute('aria-haspopup', 'dialog');
+  menuButton.setAttribute('aria-controls', 'progressDrawer');
+  menuButton.innerHTML = '<span aria-hidden="true">☰</span>';
+  document.querySelector('.top').prepend(menuButton);
+  const drawer = document.createElement('dialog');
+  drawer.id = 'progressDrawer';
+  drawer.className = 'progress-drawer';
+  drawer.setAttribute('aria-labelledby', 'progressHeading');
+  drawer.innerHTML = '<div class="drawer-heading"><div><p class="drawer-eyebrow">STAFF АКАДЕМИЯ</p><h2 id="progressHeading">Мой прогресс</h2></div><button type="button" id="closeProgressMenu" aria-label="Закрыть меню">×</button></div><p class="muted">На этом устройстве</p><p id="drawerStorageError" role="status" hidden>Данные недоступны. Проверьте сообщение об ошибке сохранения в приложении.</p><div id="drawerStats"><p class="drawer-learned"><strong id="drawerLearned">0</strong> / <span id="drawerTotal">0</span></p><p class="muted">Карточек с верным последним ответом</p><progress id="drawerMeter" max="1" value="0" aria-label="Прогресс карточек"></progress><dl class="drawer-metrics"><div><dt>Попробовано карточек</dt><dd id="drawerSeen">0</dd></div><div><dt>Пора повторить</dt><dd id="drawerDue">0</dd></div><div><dt>Ещё не открыто</dt><dd id="drawerNew">0</dd></div><div><dt>Завершено занятий*</dt><dd id="drawerSessions">0</dd></div><div><dt>Последний экзамен</dt><dd id="drawerExam">Пока нет</dd></div></dl><p id="drawerLast" class="muted">Начните тренировку — здесь появится ваша сводка.</p><p class="muted">* История хранит последние 40 занятий. Экзамены не меняют прогресс карточек.</p></div><button type="button" id="drawerBackup" class="drawer-backup">Сохранить или перенести прогресс</button><p class="muted">Прогресс сохраняется автоматически в этом браузере. Для переноса на другое устройство сохраните копию. Синхронизации между устройствами нет.</p>';
+  document.querySelector('main').append(drawer);
+  function refreshSummary() {
+    const stats = window.StaffUI.load();
+    $('drawerStorageError').hidden = !storageError;
+    $('drawerStats').hidden = storageError;
+    if (storageError) return;
+    const cards = Object.values(stats.cards);
+    const learned = cards.filter(card => card.reps > 0).length;
+    const exams = stats.sessions.filter(session => session.mode === 'exam');
+    $('drawerLearned').textContent = String(learned);
+    $('drawerTotal').textContent = String(questionBank.length);
+    $('drawerMeter').max = questionBank.length || 1;
+    $('drawerMeter').value = learned;
+    $('drawerSeen').textContent = String(cards.length);
+    $('drawerDue').textContent = String(cards.filter(card => card.due <= Date.now()).length);
+    $('drawerNew').textContent = String(Math.max(0, questionBank.length - cards.length));
+    $('drawerSessions').textContent = String(stats.sessions.length);
+    const exam = exams[0];
+    $('drawerExam').textContent = exam ? Math.round(exam.score / Math.max(1, exam.total) * 100) + '% · ' + exam.score + '/' + exam.total : 'Пока нет';
+    const last = stats.sessions[0];
+    $('drawerLast').textContent = last ? 'Последнее занятие: ' + new Date(last.date).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Начните тренировку — здесь появится ваша сводка.';
+  }
+  menuButton.onclick = () => { refreshSummary(); drawer.showModal(); };
+  $('closeProgressMenu').onclick = () => drawer.close();
+  drawer.onclick = event => { if (event.target === drawer) { const rect = drawer.getBoundingClientRect(); if (event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) drawer.close(); } };
+  let swipeStart = null;
+  drawer.addEventListener('touchstart', event => { swipeStart = { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY }; }, { passive: true });
+  drawer.addEventListener('touchend', event => {
+    if (!swipeStart) return;
+    const touch = event.changedTouches[0];
+    if (swipeStart.x - touch.clientX > 70 && Math.abs(swipeStart.y - touch.clientY) < 60) drawer.close();
+    swipeStart = null;
+  }, { passive: true });
+  $('drawerBackup').onclick = () => { drawer.close(); section.querySelector('details').open = true; $('exportProgress').focus(); };
+  window.addEventListener('staff-progress-imported', () => { if (drawer.open) refreshSummary(); });
+  window.addEventListener('storage', () => { if (drawer.open) refreshSummary(); });
   let importText = null;
   function clearImport() { importText = null; $('importProgress').value = ''; $('importReview').hidden = true; }
   $('exportProgress').onclick = () => {
@@ -71,6 +122,7 @@
   $('applyUpdate').onclick = applyUpdate;
   window.StaffUI = {
     configure(bank) {
+      questionBank = bank;
       try { store = StaffProgress.createStore(localStorage, bank.map(q => q[5]), STAFF_LEGACY_IDS); }
       catch (error) { failed(error); }
     },
@@ -80,7 +132,7 @@
     },
     save(data) {
       if (storageError || !store) return false;
-      try { store.save(data); return true; } catch (error) { failed(error); return false; }
+      try { store.save(data); if (drawer.open) refreshSummary(); return true; } catch (error) { failed(error); return false; }
     },
     setBusy(value) { busy = value; updateNotice(); },
     async register() {
