@@ -4,7 +4,7 @@
   const section = document.createElement('section');
   section.className = 'settings';
   section.setAttribute('aria-label', 'Прогресс и обновления');
-  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">7f78f822704f2be336b9</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
+  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">4dc3fa23e115ddb040a2</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
   document.querySelector('main').append(section);
   const $ = id => document.getElementById(id);
   function status(text, error = false) {
@@ -56,7 +56,7 @@
     } catch (error) { status('Импорт не выполнен: ' + error.message, true); }
   };
   function updateNotice() {
-    if (!waiting) return;
+    if (!waiting) { $('updateNotice').hidden = true; return; }
     $('updateNotice').hidden = false;
     $('applyUpdate').disabled = busy;
     $('updateText').textContent = busy ? 'Новая версия готова. Обновление станет доступно после завершения сессии.' : 'Готова новая версия. Прогресс сохранится.';
@@ -87,9 +87,14 @@
       if (!('serviceWorker' in navigator)) { status('Офлайн-режим не поддерживается этим браузером.'); return; }
       try {
         const registration = await navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' });
-        navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) location.reload(); });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (applying) location.reload();
+          else { waiting = registration.waiting; updateNotice(); }
+        });
         const showWaiting = (atStartup = false) => {
-          if (!registration.waiting) return;
+          // First install activates on its own. Only an existing active release
+          // with a distinct waiting worker represents an application update.
+          if (!registration.active || !registration.waiting) return;
           waiting = registration.waiting; updateNotice();
           // Apply an already waiting release before the first answer on a new launch.
           if (atStartup && !busy) applyUpdate();
@@ -97,7 +102,12 @@
         showWaiting(true);
         registration.addEventListener('updatefound', () => {
           const worker = registration.installing;
-          if (worker) worker.addEventListener('statechange', () => { if (worker.state === 'installed') showWaiting(); });
+          if (worker) worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed') showWaiting();
+            else if ((worker.state === 'activated' || worker.state === 'redundant') && waiting === worker) {
+              waiting = null; updateNotice();
+            }
+          });
         });
         let lastCheck = 0;
         const check = () => {
