@@ -17,7 +17,7 @@ const HELP_KEY='staff.mixology.formulaHelp.v1';
 $('mixHelp').innerHTML=svg('<circle cx="12" cy="12" r="10"/><path d="M9 9a3 3 0 0 1 6 1c0 2-3 2-3 4M12 17h.01"/>');
 $('mixProgress').innerHTML=svg('<path d="M8 19v-5M12 19V9M16 19V5"/>');
 function helpRead(){try{return localStorage.getItem(HELP_KEY)==='read';}catch(_){return false;}}
-function helpStyle(){$('mixHelp').classList.toggle('help-read',helpRead());}
+function helpStyle(){$('mixHelp').hidden=helpRead();}
 let helpReturn='Главная',highlight='';
 $('mixHelp').onclick=()=>{helpReturn=mode;mode='Справка';highlight='';render();};
 $('mixProgress').onclick=()=>{mode='Прогресс составов';reset();};
@@ -25,12 +25,13 @@ helpStyle();
 function render(){panel.classList.toggle('mix-home',mode==='Главная');nav.hidden=mode!=='Главная';$('mixSelectorLabel').hidden=!['Изучение','Тренировка','Контроль'].includes(mode);helpStyle();const body=$('mixBody');body.replaceChildren();$('mixStatus').textContent='';const node=(tag,text,parent=body)=>{const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;};const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=fn;return b;};
 if(mode==='Главная')return;
 if(mode==='Справка'){
- node('h3','Как устроен коктейль?');node('p','Основа + Сладость + Баланс + Наполнитель');
- const roles=[['Основа','Алкогольная база либо безалкогольный аналог.'],['Сладость','Сиропы, пюре, джемы, сахар, ликёры и другие подслащивающие компоненты.'],['Баланс','Кислотность, горечь и другие вкусовые противовесы. Кислотность и горечь — разные свойства.'],['Наполнитель','Содовая, тоник, соки и другие компоненты, формирующие объём.']];
- for(const [name,text] of roles){const p=node('p',name+': '+text);if(highlight.includes(name))p.className='formula-highlight';}
- node('p','Это учебная эвристика, а не универсальная формула. Не все категории есть в каждом коктейле. Один ингредиент может выполнять несколько функций.');
- node('h4','Пример: Негрони');node('p','Джин Бифитер — основа. Мартини Россо — сладость, винная и травяная составляющая. Кампари — горечь и баланс. Наполнитель отсутствует. Кампари не является кислым компонентом, аналогичным лимонному или лаймовому соку.');
- button('Понятно, запомнил',()=>{try{localStorage.setItem(HELP_KEY,'read');mode=helpReturn;render();}catch(_){$('mixStatus').textContent='Не удалось сохранить прочтение. Попробуйте ещё раз.';}});button('Назад без подтверждения',()=>{mode=helpReturn;render();});return;
+ node('h3','Как устроен коктейль?');
+ node('p','Каждый коктейль собирается по формуле:');
+ node('p','Алкогольная часть + Сладкая часть + Противовес + Безалкогольная часть');
+ node('p','За сладость отвечают сиропы, пюре, джемы, ликёры и другие подслащивающие компоненты.');
+ node('p','Противовесом чаще всего выступает кислая часть (фреш лимона/лайма), горькая часть (биттеры) и другие вкусовые противовесы.');
+ node('p','Б/А часть: содовая, тоник, соки и другие компоненты, формирующие объём.');
+ button('Прочитано',()=>{try{localStorage.setItem(HELP_KEY,'read');mode='Главная';render();}catch(_){$('mixStatus').textContent='Не удалось сохранить прочтение. Попробуйте ещё раз.';}});return;
 }
 button('← Главное меню',()=>{mode='Главная';reset();});
 if(mode==='Тренировка')button('Контроль без подсказок',()=>{mode='Контроль';reset();});
@@ -53,11 +54,6 @@ if(mode==='Изучение'){button(hidden?'Показать состав':'С�
 node('p','Выбрано компонентов: '+selected.size);const grid=node('div','');grid.className='mix-options';for(const i of options){const b=node('button',i.name,grid);b.type='button';b.setAttribute('aria-pressed',String(selected.has(i.id)));b.disabled=checked;b.onclick=()=>{selected.has(i.id)?selected.delete(i.id):selected.add(i.id);render();};}
 if(!checked)button('Проверить состав',()=>{const result=StaffMix.check(recipe,[...selected]);const data=StaffUI.load();data.mixes=data.mixes||{};data.mixes[recipe.id]=StaffMix.record(data.mixes[recipe.id],result);if(!StaffUI.save(data)){ $('mixStatus').textContent='Ответ не записан: проверьте сообщение об ошибке хранения.';return;}checked=true;render();});
 else{const result=StaffMix.check(recipe,[...selected]);node('h4',result.ok?'Состав собран верно':'Есть ошибки в составе');const names=ids=>ids.map(id=>options.find(i=>i.id===id)?.name||id).join(', ')||'Нет';node('p','Верно: '+names(result.correct));node('p','Пропущено: '+names(result.missing));node('p','Лишнее: '+names(result.extra));composition();
- if(result.ok){hintCount=0;hintUsed=true;}else if(helpRead()&&!feedbackVisited){
- const ingredient=recipe.ingredients.find(i=>result.missing.includes(i.id)&&i.roles.some(r=>!r.includes('Прочее')));
- if(ingredient){feedbackVisited=true;const role=ingredient.roles.find(r=>!r.includes('Прочее'));hintCount=hintRole===role?hintCount+1:1;hintRole=role;
- if(!hintUsed||hintCount>=3){hintUsed=true;hintCount=0;node('p','Помнишь формулу коктейля?');button('Вспомнить',()=>{helpReturn=mode;highlight=role;mode='Справка';render();});node('p','Пропущен компонент '+ingredient.name+'. Его роль: '+role+'.');}}
- }
  button(result.ok?'Ещё одна сборка':'Повторить сборку',reset);}
 }
 window.addEventListener('staff-progress-imported',()=>{if(panel.open)reset();});
