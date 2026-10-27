@@ -4,7 +4,7 @@
   const section = document.createElement('section');
   section.className = 'settings';
   section.setAttribute('aria-label', 'Прогресс и обновления');
-  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">18d0911328a033cc993d</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
+  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">12c8f65e3c0d240f029a</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
   document.querySelector('main').append(section);
   const $ = id => document.getElementById(id);
   function status(text, error = false) {
@@ -16,6 +16,7 @@
     status('Прогресс не удалось прочитать или сохранить. Исходные данные не удалены. ' + error.message, true);
   }
   let questionBank = [];
+  function activeBank(){return typeof StaffBank==='undefined'?questionBank:questionBank.filter(q=>StaffBank.isActive(q,window.StaffUI.formulaRead()));}
   const menuButton = document.createElement('button');
   menuButton.type = 'button';
   menuButton.className = 'progress-menu-button';
@@ -37,7 +38,7 @@
   let cabinetTab = 'overview';
   for (const [id, tab] of [['cabOverview','overview'],['cabReview','review'],['cabHistory','history']]) $(id).onclick = () => { cabinetTab = tab; refreshSummary(); };
   function renderCabinet(stats) {
-    const data = StaffLearning.summary(questionBank, stats);
+    const data = StaffLearning.summary(activeBank(), stats);
     const content = $('cabContent'); content.replaceChildren();
     const line = text => { const p = document.createElement('p'); p.textContent = text; content.append(p); };
     for (const [id, tab] of [['cabOverview','overview'],['cabReview','review'],['cabHistory','history']]) $(id).setAttribute('aria-pressed', String(cabinetTab === tab));
@@ -47,7 +48,7 @@
       const meter = document.createElement('progress'); meter.max = data.total || 1; meter.value = data.seen; meter.setAttribute('aria-label','Охват материала'); content.append(meter);
       line('Освоение материала: '+data.mastered+' / '+data.total+' · '+pct(data.mastered)+'%');
       line('Освоена: минимум 3 верных ответа в 3 разные календарные даты и успешное повторение после интервала от 7 суток. Это рабочая метрика приложения, а не вероятность запоминания.');
-      for (const name of ['Новая','Изучается','Закрепляется','Освоена']) line(name+': '+questionBank.filter(q=>StaffLearning.state(stats.cards[q[5]])===name).length);
+      for (const name of ['Новая','Изучается','Закрепляется','Освоена']) line(name+': '+activeBank().filter(q=>StaffLearning.state(stats.cards[q[5]])===name).length);
       line('Старые ответы сохранены. Даты успешных повторений учитываются с этого обновления.');
     } else if (cabinetTab === 'review') {
       line('К повторению: '+data.due.length+' · В будущем: '+data.future.length);
@@ -55,7 +56,7 @@
       line(data.next?'Ближайшее повторение: '+new Date(data.next).toLocaleString('ru-RU'):'Будущих повторений пока нет.');
       if (data.due.length) {
         const button = document.createElement('button'); button.className = 'drawer-backup'; button.textContent = 'Повторить сейчас — '+data.due.length+' карточек';
-        button.onclick = () => { const current = StaffLearning.summary(questionBank, window.StaffUI.load()); if (!current.due.length) { refreshSummary(); return; } drawer.close(); window.dispatchEvent(new CustomEvent('staff-review',{detail:current.due})); }; content.append(button);
+        button.onclick = () => { const current = StaffLearning.summary(activeBank(), window.StaffUI.load()); if (!current.due.length) { refreshSummary(); return; } drawer.close(); window.dispatchEvent(new CustomEvent('staff-review',{detail:current.due})); }; content.append(button);
       } else line('Сейчас всё повторено. Следующие карточки появятся позже');
       for (const [title,ids] of [['Сейчас',data.due],['Запланировано',data.future]]) {
         const list = document.createElement('details'); const heading = document.createElement('summary'); heading.textContent=title+' · '+ids.length; list.append(heading);
@@ -84,16 +85,16 @@
     $('drawerStats').hidden = storageError;
     if (storageError) return;
     renderCabinet(stats);
-    const cards = Object.values(stats.cards);
+    const cards = activeBank().map(q=>stats.cards[q[5]]).filter(Boolean);
     const learned = cards.filter(card => card.reps > 0).length;
     const exams = stats.sessions.filter(session => session.mode === 'exam');
     $('drawerLearned').textContent = String(learned);
-    $('drawerTotal').textContent = String(questionBank.length);
-    $('drawerMeter').max = questionBank.length || 1;
+    $('drawerTotal').textContent = String(activeBank().length);
+    $('drawerMeter').max = activeBank().length || 1;
     $('drawerMeter').value = learned;
     $('drawerSeen').textContent = String(cards.length);
     $('drawerDue').textContent = String(cards.filter(card => card.due <= Date.now()).length);
-    $('drawerNew').textContent = String(Math.max(0, questionBank.length - cards.length));
+    $('drawerNew').textContent = String(Math.max(0, activeBank().length - cards.length));
     $('drawerSessions').textContent = String(stats.sessions.length);
     const exam = exams[0];
     $('drawerExam').textContent = exam ? Math.round(exam.score / Math.max(1, exam.total) * 100) + '% · ' + exam.score + '/' + exam.total : 'Пока нет';

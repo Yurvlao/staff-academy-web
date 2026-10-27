@@ -47,7 +47,7 @@
     if (knownIds.size !== ids.length || ids.some(id => !/^staff-\d{4,}$/.test(id))) throw new Error('Ошибка идентификаторов банка.');
     function load() {
       const raw = storage.getItem(KEY);
-      if (raw !== null) return validate(JSON.parse(raw), knownIds);
+      if (raw !== null) { const result=validate(JSON.parse(raw), knownIds); if(knownIds.has('staff-0400')&&storage.getItem('staff-academy-before-bank-2026-10')===null) storage.setItem('staff-academy-before-bank-2026-10',raw); return result; }
       const legacyRaw = storage.getItem(LEGACY_KEY);
       if (legacyRaw === null) return empty();
       const legacy = JSON.parse(legacyRaw);
