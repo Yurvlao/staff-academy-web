@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffTesting=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
+const Course=typeof module==='object'&&module.exports?require('./course-core.js'):StaffCourse;
 const SIZE=10,PASS=8,empty=()=>({version:1,passedLevels:[],recent:{},results:[]});
 const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x),id=x=>typeof x==='string'&&/^[a-z0-9-]{1,100}$/.test(x),level=x=>[1,2,3].includes(x),date=x=>typeof x==='string'&&Number.isFinite(Date.parse(x));
 const ids=a=>Array.isArray(a)&&a.length===SIZE&&new Set(a).size===SIZE&&a.every(x=>/^staff-\d{4,}$/.test(x));
@@ -10,7 +11,7 @@ function validate(t){if(!obj(t)||t.version!==1||!Array.isArray(t.passedLevels)||
  return JSON.parse(JSON.stringify(t));
 }
 function shuffle(a,random=Math.random){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function pool(catalog,data,course,l,formulaRead){const published=new Set(course.lessons.map(x=>x.id));return catalog.filter(q=>q.active&&q.level===l&&q.lessonId&&published.has(q.lessonId)&&data.theory?.lessons?.[q.lessonId]?.completedAt&&(!q.requiresFormula||formulaRead));}
+function pool(catalog,data,course,l,formulaRead){const published=new Set(course.lessons.map(x=>x.id));return catalog.filter(q=>q.active&&q.level===l&&q.lessonId&&published.has(q.lessonId)&&Course.completed(data.theory,q.lessonId)&&(!q.requiresFormula||formulaRead));}
 function unlocked(t,l){return l===1||(t?.passedLevels||[]).includes(l-1);}
 function start(t,l,questions,random=Math.random,now=new Date().toISOString()){
  t=validate(t||empty());if(!unlocked(t,l))throw Error('Сначала пройдите предыдущий уровень.');if(questions.length<SIZE)throw Error('Для блица нужно 10 изученных вопросов. Пройдите дополнительную теорию.');

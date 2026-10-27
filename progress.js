@@ -54,7 +54,7 @@
     if (knownIds.size !== ids.length || ids.some(id => !/^staff-\d{4,}$/.test(id))) throw new Error('Ошибка идентификаторов банка.');
     function load() {
       const raw = storage.getItem(KEY);
-      if (raw !== null) { const result=validate(JSON.parse(raw), knownIds); if(knownIds.has('staff-0400')&&storage.getItem('staff-academy-before-bank-2026-10')===null) storage.setItem('staff-academy-before-bank-2026-10',raw); return result; }
+      if (raw !== null) { const result=validate(JSON.parse(raw), knownIds); if(result.theory&&!result.theory.theoryMvp01){const theory=Course.migrate(result.theory);if(storage.getItem('staff-academy-before-theory-mvp01')===null)storage.setItem('staff-academy-before-theory-mvp01',raw);result.theory=theory;storage.setItem(KEY,JSON.stringify(result));} if(knownIds.has('staff-0400')&&storage.getItem('staff-academy-before-bank-2026-10')===null) storage.setItem('staff-academy-before-bank-2026-10',raw); return result; }
       const legacyRaw = storage.getItem(LEGACY_KEY);
       if (legacyRaw === null) return empty();
       const legacy = JSON.parse(legacyRaw);
@@ -73,6 +73,7 @@
     function save(value) {
       const result = validate(value, knownIds);
       const prior = storage.getItem(KEY);
+      if(result.theory?.theoryMvp01&&prior!==null&&storage.getItem('staff-academy-before-theory-mvp01')===null)storage.setItem('staff-academy-before-theory-mvp01',prior);
       if((result.testing!==undefined||result.cocktailPractice!==undefined)&&prior!==null&&storage.getItem('staff-academy-before-unified-v1')===null)storage.setItem('staff-academy-before-unified-v1',prior);
       if(result.theory!==undefined&&prior!==null&&storage.getItem('staff-academy-before-theory-v1')===null)storage.setItem('staff-academy-before-theory-v1',prior);
       if (prior !== null && storage.getItem('staff-academy-before-cabinet') === null) storage.setItem('staff-academy-before-cabinet', prior);
@@ -80,13 +81,13 @@
       return result;
     }
     function exportText() {
-      return JSON.stringify({ app: 'staff-academy', schemaVersion: 5, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
+      return JSON.stringify({ app: 'staff-academy', schemaVersion: 6, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
     }
     function parseImport(text) {
       if (typeof text !== 'string' || text.length > 2 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 2 МБ.');
       const data = JSON.parse(text);
-      if (!object(data) || data.app !== 'staff-academy' || ![3,4,5].includes(data.schemaVersion)) throw new Error('Это не поддерживаемый файл прогресса STAFF.');
-      return validate(data.progress, knownIds);
+      if (!object(data) || data.app !== 'staff-academy' || ![3,4,5,6].includes(data.schemaVersion)) throw new Error('Это не поддерживаемый файл прогресса STAFF.');
+      const result=validate(data.progress, knownIds);if(result.theory)result.theory=Course.migrate(result.theory);return result;
     }
     function importText(text) {
       const result = parseImport(text);
@@ -103,9 +104,9 @@
       return saved;
     }
     function exportBackup() {
-      const raw = storage.getItem('staff-academy-before-unified-v1') || storage.getItem('staff-academy-before-theory-v1') || storage.getItem('staff-academy-before-cabinet');
+      const raw = storage.getItem('staff-academy-before-theory-mvp01') || storage.getItem('staff-academy-before-unified-v1') || storage.getItem('staff-academy-before-theory-v1') || storage.getItem('staff-academy-before-cabinet');
       if (raw === null) throw new Error('Резервной копии до обновления пока нет.');
-      return JSON.stringify({app:'staff-academy',schemaVersion:3,progress:JSON.parse(raw)},null,2);
+      return JSON.stringify({app:'staff-academy',schemaVersion:6,progress:JSON.parse(raw)},null,2);
     }
     return { load, save, exportText, exportBackup, parseImport, importText };
   }
