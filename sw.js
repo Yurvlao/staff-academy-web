@@ -1,8 +1,8 @@
 'use strict';
-const RELEASE = 'bfd8ef34da394647db0d';
+const RELEASE = '8db1d47398e4b70df2c9';
 const PREFIX = 'staff-academy-' + new URL(self.registration.scope).pathname.replace(/[^a-z0-9]/gi, '_') + '-';
 const CACHE = PREFIX + RELEASE;
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './progress.js', './learning.js', './legacy-map.js', './pwa.js', './pwa.css', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
+const ASSETS = ['./', './index.html', './manifest.webmanifest', './progress.js', './learning.js', './cocktails.js', './mix-core.js', './mixology.js', './mixology.css', './images/cocktail-missing.svg', './images/na-blueberry.webp', './images/na-sagan.webp', './images/sunset.webp', './images/forest.webp', './images/summer.webp', './images/gimlet.webp', './images/tundra.webp', './images/cranberry.webp', './images/unknown.webp', './images/fjord.webp', './images/south.webp', './legacy-map.js', './pwa.js', './pwa.css', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(async cache => {

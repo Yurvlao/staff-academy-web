@@ -31,7 +31,14 @@
       }
       return { ...s, mode: s.mode, score: s.score, total: s.total, date: new Date(s.date).toISOString() };
     });
-    return { cards, sessions };
+    const mixes = value.mixes;
+    if (mixes !== undefined) {
+      if (!object(mixes) || Object.keys(mixes).length > 500) throw new Error('Повреждены данные составов.');
+      for (const [id,v] of Object.entries(mixes)) {
+        if (!/^[a-z0-9-]+$/.test(id) || !object(v) || !Number.isSafeInteger(v.attempts) || v.attempts<0 || !Number.isSafeInteger(v.successes) || v.successes<0 || v.successes>v.attempts || !finite(v.due,0,8640000000000000) || !finite(v.last,0,8640000000000000) || !Number.isSafeInteger(v.reps) || v.reps<0 || !finite(v.interval,0,3650000) || !finite(v.ease,1.3,3) || !Array.isArray(v.days) || v.days.length>30 || v.days.some(d=>typeof d!=='string') || !Array.isArray(v.errors) || v.errors.length>100 || v.errors.some(e=>!object(e)||!Array.isArray(e.missing)||!Array.isArray(e.extra)||!finite(e.date,0,8640000000000000)) || !['Изучается','Закрепляется','Освоен'].includes(v.status)) throw new Error('Повреждён прогресс рецепта.');
+      }
+    }
+    return { cards, sessions, ...(mixes === undefined ? {} : {mixes}) };
   }
 
   function createStore(storage, ids, legacyIds) {
@@ -78,6 +85,7 @@
       if (priorRaw !== null) storage.setItem('staff-academy-before-import', priorRaw);
       const legacyRaw = storage.getItem(LEGACY_KEY);
       if (legacyRaw !== null && storage.getItem(BACKUP_KEY) === null) storage.setItem(BACKUP_KEY, legacyRaw);
+      if (result.mixes === undefined) { try { const current = load(); if (current.mixes) result.mixes = current.mixes; } catch (_) { /* Prior raw data was backed up above; valid import can repair damaged storage. */ } }
       return save(result);
     }
     function exportBackup() {
