@@ -14,11 +14,11 @@ function home(){mode='Главная';reset();}
 function close(){cancel();panel.close();}
 function nextRecipe(){const ready=recipes.filter(r=>r.ready),i=ready.findIndex(r=>r.id===recipe.id);recipe=ready[(i+1)%ready.length];selector.value=recipe.id;reset();}
 function schedule(ms){if(timer!==null)clearTimeout(timer);const token=++generation;timer=setTimeout(()=>{timer=null;if(token!==generation||!checked||!panel.open)return;if(document.visibilityState==='hidden'){paused=true;render();return;}nextRecipe();},ms);}
-trigger.onclick=()=>{if($('progressDrawer').open)$('progressDrawer').close();panel.showModal();home();};$('openProgressMenu').addEventListener('click',()=>{if(panel.open)close();});$('mixClose').onclick=close;$('mixBack').innerHTML=svg('<path d="m12 19-7-7 7-7M5 12h14"/>');$('mixBack').onclick=home;
+trigger.onclick=()=>{if(window.StaffTheory&&!window.StaffTheory.cocktailsAllowed()){panel.showModal();mode='Закрыто';render();return;}if($('progressDrawer').open)$('progressDrawer').close();panel.showModal();home();};$('openProgressMenu').addEventListener('click',()=>{if(panel.open)close();});$('mixClose').onclick=close;$('mixBack').innerHTML=svg('<path d="m12 19-7-7 7-7M5 12h14"/>');$('mixBack').onclick=home;
 panel.addEventListener('close',cancel);panel.addEventListener('cancel',cancel);panel.onclick=e=>{if(e.target===panel&&e.clientX>panel.getBoundingClientRect().right)close();};let touch=null;panel.addEventListener('touchstart',e=>{touch={x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY};},{passive:true});panel.addEventListener('touchend',e=>{if(touch&&touch.x-e.changedTouches[0].clientX>70&&Math.abs(touch.y-e.changedTouches[0].clientY)<60)close();touch=null;},{passive:true});
 $('mixHelp').innerHTML=svg('<circle cx="12" cy="12" r="10"/><path d="M9 9a3 3 0 0 1 6 1c0 2-3 2-3 4M12 17h.01"/>');$('mixProgress').innerHTML=svg('<path d="M8 19v-5M12 19V9M16 19V5"/>');
 function helpRead(){try{return localStorage.getItem(HELP_KEY)==='read';}catch(_){return false;}}
-function helpStyle(){$('mixHelp').hidden=helpRead();}
+function helpStyle(){$('mixHelp').hidden=helpRead()||mode==='Закрыто';}
 $('mixHelp').onclick=()=>{cancel();mode='Справка';render();};$('mixProgress').onclick=()=>{cancel();mode='Прогресс составов';render();};helpStyle();
 function submit(){
  if(checked)return;checked=true;
@@ -28,9 +28,11 @@ function submit(){
  if(StaffUI.setBusy)StaffUI.setBusy(true);render();schedule(result.ok?1250:Math.max(3000,1000+(result.missing.length+result.extra.length)*500));
 }
 function render(){
- const homeScreen=mode==='Главная',card=['Изучение','Тренировка'].includes(mode);panel.classList.toggle('mix-home',homeScreen);panel.classList.toggle('cocktail-card',card);nav.hidden=!homeScreen;$('mixBack').hidden=homeScreen;$('mixSelectorLabel').hidden=!card;helpStyle();
+ if(window.StaffTheory&&!window.StaffTheory.cocktailsAllowed())mode='Закрыто';
+ const homeScreen=mode==='Главная',card=['Изучение','Тренировка'].includes(mode);panel.classList.toggle('mix-home',homeScreen);panel.classList.toggle('cocktail-card',card);nav.hidden=!homeScreen;$('mixBack').hidden=homeScreen||mode==='Закрыто';$('mixProgress').hidden=mode==='Закрыто';$('mixSelectorLabel').hidden=!card;helpStyle();
  const body=$('mixBody');body.replaceChildren();$('mixStatus').textContent='';const node=(tag,text,parent=body)=>{const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;};const button=(text,fn,parent=body)=>{const b=node('button',text,parent);b.type='button';b.onclick=fn;return b;};
  if(homeScreen)return;
+ if(mode==='Закрыто'){node('h3','Сначала — теория коктейлей');node('p','Тренажёр откроется после освоения главы «Алкогольные коктейли». Глава готовится.');button('Открыть теорию',()=>{close();window.StaffTheory.open();});return;}
  if(mode==='Справка'){
  node('h3','Как устроен коктейль?');
  node('p','Каждый коктейль собирается по формуле:');

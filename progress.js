@@ -4,6 +4,7 @@
   else root.StaffProgress = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  const Course = typeof module==='object'&&module.exports ? require('./course-core.js') : StaffCourse;
   const KEY = 'staff-academy-v3';
   const LEGACY_KEY = 'staff-academy-v2';
   const BACKUP_KEY = 'staff-academy-v2-backup';
@@ -39,7 +40,8 @@
       }
     }
     if (value.formulaHelpRead !== undefined && typeof value.formulaHelpRead !== 'boolean') throw new Error('Повреждено состояние справки.');
-    return { cards, sessions, ...(value.formulaHelpRead === undefined ? {} : {formulaHelpRead:value.formulaHelpRead}), ...(mixes === undefined ? {} : {mixes}) };
+    const theory = value.theory===undefined ? undefined : Course.validate(value.theory);
+    return { cards, sessions, ...(theory===undefined?{}:{theory}), ...(value.formulaHelpRead === undefined ? {} : {formulaHelpRead:value.formulaHelpRead}), ...(mixes === undefined ? {} : {mixes}) };
   }
 
   function createStore(storage, ids, legacyIds) {
@@ -66,17 +68,18 @@
     function save(value) {
       const result = validate(value, knownIds);
       const prior = storage.getItem(KEY);
+      if(result.theory!==undefined&&prior!==null&&storage.getItem('staff-academy-before-theory-v1')===null)storage.setItem('staff-academy-before-theory-v1',prior);
       if (prior !== null && storage.getItem('staff-academy-before-cabinet') === null) storage.setItem('staff-academy-before-cabinet', prior);
       storage.setItem(KEY, JSON.stringify(result));
       return result;
     }
     function exportText() {
-      return JSON.stringify({ app: 'staff-academy', schemaVersion: 3, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
+      return JSON.stringify({ app: 'staff-academy', schemaVersion: 4, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
     }
     function parseImport(text) {
       if (typeof text !== 'string' || text.length > 2 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 2 МБ.');
       const data = JSON.parse(text);
-      if (!object(data) || data.app !== 'staff-academy' || data.schemaVersion !== 3) throw new Error('Это не файл прогресса STAFF версии 3.');
+      if (!object(data) || data.app !== 'staff-academy' || ![3,4].includes(data.schemaVersion)) throw new Error('Это не поддерживаемый файл прогресса STAFF.');
       return validate(data.progress, knownIds);
     }
     function importText(text) {
@@ -87,12 +90,13 @@
       const legacyRaw = storage.getItem(LEGACY_KEY);
       if (legacyRaw !== null && storage.getItem(BACKUP_KEY) === null) storage.setItem(BACKUP_KEY, legacyRaw);
       if (result.mixes === undefined) { try { const current = load(); if (current.mixes) result.mixes = current.mixes; } catch (_) { /* Prior raw data was backed up above; valid import can repair damaged storage. */ } }
+      try { const current=load(); if(result.theory===undefined&&current.theory)result.theory=current.theory; if(current.theory?.legacyCocktailsUnlocked){result.theory=result.theory||Course.empty();result.theory.legacyCocktailsUnlocked=true;} } catch (_) { /* Prior raw record is backed up before replacement. */ }
       const saved=save(result);
       if (result.formulaHelpRead !== undefined) storage.setItem('staff.mixology.formulaHelp.v1',result.formulaHelpRead?'read':'unread');
       return saved;
     }
     function exportBackup() {
-      const raw = storage.getItem('staff-academy-before-cabinet');
+      const raw = storage.getItem('staff-academy-before-theory-v1') || storage.getItem('staff-academy-before-cabinet');
       if (raw === null) throw new Error('Резервной копии до обновления пока нет.');
       return JSON.stringify({app:'staff-academy',schemaVersion:3,progress:JSON.parse(raw)},null,2);
     }
