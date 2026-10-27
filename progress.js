@@ -38,7 +38,8 @@
         if (!/^[a-z0-9-]+$/.test(id) || !object(v) || !Number.isSafeInteger(v.attempts) || v.attempts<0 || !Number.isSafeInteger(v.successes) || v.successes<0 || v.successes>v.attempts || !finite(v.due,0,8640000000000000) || !finite(v.last,0,8640000000000000) || !Number.isSafeInteger(v.reps) || v.reps<0 || !finite(v.interval,0,3650000) || !finite(v.ease,1.3,3) || !Array.isArray(v.days) || v.days.length>30 || v.days.some(d=>typeof d!=='string') || !Array.isArray(v.errors) || v.errors.length>100 || v.errors.some(e=>!object(e)||!Array.isArray(e.missing)||!Array.isArray(e.extra)||!finite(e.date,0,8640000000000000)) || !['Изучается','Закрепляется','Освоен'].includes(v.status)) throw new Error('Повреждён прогресс рецепта.');
       }
     }
-    return { cards, sessions, ...(mixes === undefined ? {} : {mixes}) };
+    if (value.formulaHelpRead !== undefined && typeof value.formulaHelpRead !== 'boolean') throw new Error('Повреждено состояние справки.');
+    return { cards, sessions, ...(value.formulaHelpRead === undefined ? {} : {formulaHelpRead:value.formulaHelpRead}), ...(mixes === undefined ? {} : {mixes}) };
   }
 
   function createStore(storage, ids, legacyIds) {
@@ -70,7 +71,7 @@
       return result;
     }
     function exportText() {
-      return JSON.stringify({ app: 'staff-academy', schemaVersion: 3, exportedAt: new Date().toISOString(), progress: load() }, null, 2);
+      return JSON.stringify({ app: 'staff-academy', schemaVersion: 3, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
     }
     function parseImport(text) {
       if (typeof text !== 'string' || text.length > 2 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 2 МБ.');
@@ -86,7 +87,9 @@
       const legacyRaw = storage.getItem(LEGACY_KEY);
       if (legacyRaw !== null && storage.getItem(BACKUP_KEY) === null) storage.setItem(BACKUP_KEY, legacyRaw);
       if (result.mixes === undefined) { try { const current = load(); if (current.mixes) result.mixes = current.mixes; } catch (_) { /* Prior raw data was backed up above; valid import can repair damaged storage. */ } }
-      return save(result);
+      const saved=save(result);
+      if (result.formulaHelpRead !== undefined) storage.setItem('staff.mixology.formulaHelp.v1',result.formulaHelpRead?'read':'unread');
+      return saved;
     }
     function exportBackup() {
       const raw = storage.getItem('staff-academy-before-cabinet');
