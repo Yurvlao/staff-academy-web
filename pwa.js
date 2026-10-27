@@ -4,7 +4,7 @@
   const section = document.createElement('section');
   section.className = 'settings';
   section.setAttribute('aria-label', 'Прогресс и обновления');
-  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">21ebd6f4e2045fbcebcd</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
+  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">326addc0fee775595bae</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
   document.querySelector('main').append(section);
   const $ = id => document.getElementById(id);
   function status(text, error = false) {
@@ -16,7 +16,7 @@
     status('Прогресс не удалось прочитать или сохранить. Исходные данные не удалены. ' + error.message, true);
   }
   let questionBank = [];
-  function activeBank(){return typeof StaffBank==='undefined'?questionBank:questionBank.filter(q=>StaffBank.isActive(q,window.StaffUI.formulaRead()));}
+  function activeBank(){return typeof StaffBank==='undefined'?questionBank:questionBank.filter(q=>(StaffBank.isActive(q,window.StaffUI.formulaRead())||(typeof StaffAssessment!=='undefined'&&StaffAssessment.courseIds[Number(q[5].slice(6))-600])));}
   const menuButton = document.createElement('button');
   menuButton.type = 'button';
   menuButton.className = 'progress-menu-button';
@@ -24,7 +24,7 @@
   menuButton.setAttribute('aria-label', 'Открыть меню прогресса');
   menuButton.setAttribute('aria-haspopup', 'dialog');
   menuButton.setAttribute('aria-controls', 'progressDrawer');
-  menuButton.innerHTML = '<span aria-hidden="true">☰</span>';
+  menuButton.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 19v-5M12 19V9M16 19V5"/></svg>';
   document.querySelector('.top').prepend(menuButton);
   const drawer = document.createElement('dialog');
   drawer.id = 'progressDrawer';
@@ -50,6 +50,7 @@
       line('Освоена: минимум 3 верных ответа в 3 разные календарные даты и успешное повторение после интервала от 7 суток. Это рабочая метрика приложения, а не вероятность запоминания.');
       for (const name of ['Новая','Изучается','Закрепляется','Освоена']) line(name+': '+activeBank().filter(q=>StaffLearning.state(stats.cards[q[5]])===name).length);
       line('Старые ответы сохранены. Даты успешных повторений учитываются с этого обновления.');
+      if(typeof STAFF_COCKTAILS!=='undefined'){const details=document.createElement('details'),heading=document.createElement('summary');heading.textContent='Прогресс коктейлей';details.append(heading);for(const r of STAFF_COCKTAILS){const v=stats.mixes?.[r.id];if(!v)continue;const p=document.createElement('p');p.textContent=r.name+' · '+v.attempts+' попыток · '+v.successes+' верных · '+v.status+' · повторить '+new Date(v.due).toLocaleString('ru-RU');details.append(p);}content.append(details);}
     } else if (cabinetTab === 'review') {
       line('К повторению: '+data.due.length+' · В будущем: '+data.future.length);
       line('Просрочено более суток: '+data.due.filter(id=>stats.cards[id].due<Date.now()-86400000).length);
@@ -63,6 +64,8 @@
         for (const id of ids) { const p=document.createElement('p'); p.textContent=questionBank.find(q=>q[5]===id)[1]+' — '+new Date(stats.cards[id].due).toLocaleString('ru-RU'); list.append(p); } content.append(list);
       }
     } else {
+      line('Блицы');
+      for(const r of stats.testing?.results||[])line(new Date(r.endedAt).toLocaleString('ru-RU')+' · уровень '+r.level+' · '+r.score+' / 10 · '+(r.score>=8?'Пройден':'Не пройден'));
       line('История: последние 40 завершённых занятий. Прерванные занятия не считаются завершёнными; ответы тренировок сохраняются сразу.');
       for(const mode of ['practice','exam']) {
         line(mode==='exam'?'Экзамены':'Занятия');
@@ -102,7 +105,8 @@
     $('drawerLast').textContent = last ? 'Последнее занятие: ' + new Date(last.date).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Начните тренировку — здесь появится ваша сводка.';
   }
   document.addEventListener('visibilitychange', () => { if (drawer.open) refreshSummary(); });
-  menuButton.onclick = () => { refreshSummary(); drawer.showModal(); };
+  menuButton.onclick = () => { window.StaffNav?.suspend();refreshSummary(); drawer.showModal(); };
+  drawer.addEventListener('close',()=>window.StaffNav?.resume());
   $('closeProgressMenu').onclick = () => drawer.close();
   drawer.onclick = event => { if (event.target === drawer) { const rect = drawer.getBoundingClientRect(); if (event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) drawer.close(); } };
   let swipeStart = null;

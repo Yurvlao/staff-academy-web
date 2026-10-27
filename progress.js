@@ -5,6 +5,8 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   const Course = typeof module==='object'&&module.exports ? require('./course-core.js') : StaffCourse;
+  const Testing = typeof module==='object'&&module.exports ? require('./testing-core.js') : StaffTesting;
+  const Mix = typeof module==='object'&&module.exports ? require('./mix-core.js') : StaffMix;
   const KEY = 'staff-academy-v3';
   const LEGACY_KEY = 'staff-academy-v2';
   const BACKUP_KEY = 'staff-academy-v2-backup';
@@ -39,9 +41,12 @@
         if (!/^[a-z0-9-]+$/.test(id) || !object(v) || !Number.isSafeInteger(v.attempts) || v.attempts<0 || !Number.isSafeInteger(v.successes) || v.successes<0 || v.successes>v.attempts || !finite(v.due,0,8640000000000000) || !finite(v.last,0,8640000000000000) || !Number.isSafeInteger(v.reps) || v.reps<0 || !finite(v.interval,0,3650000) || !finite(v.ease,1.3,3) || !Array.isArray(v.days) || v.days.length>30 || v.days.some(d=>typeof d!=='string') || !Array.isArray(v.errors) || v.errors.length>100 || v.errors.some(e=>!object(e)||!Array.isArray(e.missing)||!Array.isArray(e.extra)||!finite(e.date,0,8640000000000000)) || !['Изучается','Закрепляется','Освоен'].includes(v.status)) throw new Error('Повреждён прогресс рецепта.');
       }
     }
+    for(const v of Object.values(mixes||{}))if(v.trainingDates!==undefined&&(!Array.isArray(v.trainingDates)||v.trainingDates.length>100||v.trainingDates.some(t=>!finite(t,0,8640000000000000))))throw Error('Повреждены даты тренировок.');
     if (value.formulaHelpRead !== undefined && typeof value.formulaHelpRead !== 'boolean') throw new Error('Повреждено состояние справки.');
     const theory = value.theory===undefined ? undefined : Course.validate(value.theory);
-    return { cards, sessions, ...(theory===undefined?{}:{theory}), ...(value.formulaHelpRead === undefined ? {} : {formulaHelpRead:value.formulaHelpRead}), ...(mixes === undefined ? {} : {mixes}) };
+    const testing=value.testing===undefined?undefined:Testing.validate(value.testing);
+    const cocktailPractice=value.cocktailPractice===undefined?undefined:Mix.validatePractice(value.cocktailPractice);
+    return { cards, sessions, ...(testing===undefined?{}:{testing}), ...(cocktailPractice===undefined?{}:{cocktailPractice}), ...(theory===undefined?{}:{theory}), ...(value.formulaHelpRead === undefined ? {} : {formulaHelpRead:value.formulaHelpRead}), ...(mixes === undefined ? {} : {mixes}) };
   }
 
   function createStore(storage, ids, legacyIds) {
@@ -68,18 +73,19 @@
     function save(value) {
       const result = validate(value, knownIds);
       const prior = storage.getItem(KEY);
+      if((result.testing!==undefined||result.cocktailPractice!==undefined)&&prior!==null&&storage.getItem('staff-academy-before-unified-v1')===null)storage.setItem('staff-academy-before-unified-v1',prior);
       if(result.theory!==undefined&&prior!==null&&storage.getItem('staff-academy-before-theory-v1')===null)storage.setItem('staff-academy-before-theory-v1',prior);
       if (prior !== null && storage.getItem('staff-academy-before-cabinet') === null) storage.setItem('staff-academy-before-cabinet', prior);
       storage.setItem(KEY, JSON.stringify(result));
       return result;
     }
     function exportText() {
-      return JSON.stringify({ app: 'staff-academy', schemaVersion: 4, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
+      return JSON.stringify({ app: 'staff-academy', schemaVersion: 5, exportedAt: new Date().toISOString(), progress: {...load(), ...(storage.getItem('staff.mixology.formulaHelp.v1')===null?{}:{formulaHelpRead: storage.getItem('staff.mixology.formulaHelp.v1') === 'read'})} }, null, 2);
     }
     function parseImport(text) {
       if (typeof text !== 'string' || text.length > 2 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 2 МБ.');
       const data = JSON.parse(text);
-      if (!object(data) || data.app !== 'staff-academy' || ![3,4].includes(data.schemaVersion)) throw new Error('Это не поддерживаемый файл прогресса STAFF.');
+      if (!object(data) || data.app !== 'staff-academy' || ![3,4,5].includes(data.schemaVersion)) throw new Error('Это не поддерживаемый файл прогресса STAFF.');
       return validate(data.progress, knownIds);
     }
     function importText(text) {
@@ -91,12 +97,13 @@
       if (legacyRaw !== null && storage.getItem(BACKUP_KEY) === null) storage.setItem(BACKUP_KEY, legacyRaw);
       if (result.mixes === undefined) { try { const current = load(); if (current.mixes) result.mixes = current.mixes; } catch (_) { /* Prior raw data was backed up above; valid import can repair damaged storage. */ } }
       try { const current=load(); if(result.theory===undefined&&current.theory)result.theory=current.theory; if(current.theory?.legacyCocktailsUnlocked){result.theory=result.theory||Course.empty();result.theory.legacyCocktailsUnlocked=true;} } catch (_) { /* Prior raw record is backed up before replacement. */ }
+      try {const current=load();for(const key of ['testing','cocktailPractice'])if(result[key]===undefined&&current[key]!==undefined)result[key]=current[key];if(current.testing?.passedLevels.length){result.testing=result.testing||Testing.empty();result.testing.passedLevels=[...new Set([...result.testing.passedLevels,...current.testing.passedLevels])];}}catch(_){/* Raw previous record is backed up. */}
       const saved=save(result);
       if (result.formulaHelpRead !== undefined) storage.setItem('staff.mixology.formulaHelp.v1',result.formulaHelpRead?'read':'unread');
       return saved;
     }
     function exportBackup() {
-      const raw = storage.getItem('staff-academy-before-theory-v1') || storage.getItem('staff-academy-before-cabinet');
+      const raw = storage.getItem('staff-academy-before-unified-v1') || storage.getItem('staff-academy-before-theory-v1') || storage.getItem('staff-academy-before-cabinet');
       if (raw === null) throw new Error('Резервной копии до обновления пока нет.');
       return JSON.stringify({app:'staff-academy',schemaVersion:3,progress:JSON.parse(raw)},null,2);
     }

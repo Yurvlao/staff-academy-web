@@ -13,4 +13,9 @@ function record(old,ok,due,interval,now=Date.now()){
 }
 function state(card){if(!card)return 'Новая';const v=card.learning;if(v&&v.correct>=config.correct&&Array.isArray(v.days)&&v.days.length>=config.days&&v.interval>=config.interval)return 'Освоена';return v&&v.days&&v.days.length>=2?'Закрепляется':'Изучается';}
 function summary(bank,stats,now=Date.now()){const ids=bank.map(q=>q[5]);const seen=ids.filter(id=>stats.cards[id]);const due=seen.filter(id=>stats.cards[id].due<=now);const future=seen.filter(id=>stats.cards[id].due>now);return {total:ids.length,seen:seen.length,mastered:seen.filter(id=>state(stats.cards[id])==='Освоена').length,due,future,next:future.length?Math.min(...future.map(id=>stats.cards[id].due)):null};}
-return {config,record,state,summary};});
+function schedule(prev,ok,now=Date.now()){
+ const old=prev||{ease:2.5,interval:0,reps:0,errors:0,due:0};const v={...old};
+ if(ok){v.reps++;v.interval=v.reps===1?1:v.reps===2?3:Math.max(1,Math.round(v.interval*v.ease));v.ease=Math.min(3,Math.max(1.3,v.ease+.1));}else{v.reps=0;v.errors++;v.interval=0;v.ease=Math.max(1.3,v.ease-.2);}
+ v.due=now+(ok?v.interval*86400000:0);v.learning=record(old.learning,ok,old.due,old.interval,now);return v;
+}
+return {config,record,state,summary,schedule};});
