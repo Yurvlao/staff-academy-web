@@ -1,0 +1,16 @@
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffLearning=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const config={correct:3,days:3,interval:7};
+const day=t=>{const d=new Date(t);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function record(old,ok,due,interval,now=Date.now()){
+ const v=old&&typeof old==='object'?{...old}:{correct:0,days:[],interval:0};
+ if(!ok)return {correct:0,days:[],interval:0};
+ v.correct=(Number(v.correct)||0)+1;
+ const days=Array.isArray(v.days)?v.days:[];
+ // Same-day retries and early practice cannot manufacture spaced evidence.
+ if(!days.length||now>=due){v.days=[...new Set([...days,day(now)])].slice(-30);v.interval=now>=due?interval:0;}
+ return v;
+}
+function state(card){if(!card)return 'Новая';const v=card.learning;if(v&&v.correct>=config.correct&&Array.isArray(v.days)&&v.days.length>=config.days&&v.interval>=config.interval)return 'Освоена';return v&&v.days&&v.days.length>=2?'Закрепляется':'Изучается';}
+function summary(bank,stats,now=Date.now()){const ids=bank.map(q=>q[5]);const seen=ids.filter(id=>stats.cards[id]);const due=seen.filter(id=>stats.cards[id].due<=now);const future=seen.filter(id=>stats.cards[id].due>now);return {total:ids.length,seen:seen.length,mastered:seen.filter(id=>state(stats.cards[id])==='Освоена').length,due,future,next:future.length?Math.min(...future.map(id=>stats.cards[id].due)):null};}
+return {config,record,state,summary};});

@@ -21,14 +21,15 @@
       if (!object(card) || !finite(card.ease, 1.3, 3) || !finite(card.interval, 0, 3650000) ||
           !Number.isSafeInteger(card.reps) || card.reps < 0 || !Number.isSafeInteger(card.errors) || card.errors < 0 ||
           !finite(card.due, 0, 8640000000000000)) throw new Error('Повреждены данные карточки ' + id + '.');
-      cards[id] = { ease: card.ease, interval: card.interval, reps: card.reps, errors: card.errors, due: card.due };
+      if (card.learning !== undefined && (!object(card.learning) || !Number.isSafeInteger(card.learning.correct) || card.learning.correct < 0 || !Array.isArray(card.learning.days) || card.learning.days.length > 30 || card.learning.days.some(d => typeof d !== 'string' || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(d)) || !finite(card.learning.interval,0,3650000))) throw new Error('Повреждены сведения о повторениях. Исходные данные сохранены.');
+      cards[id] = { ...card, ease: card.ease, interval: card.interval, reps: card.reps, errors: card.errors, due: card.due };
     }
     const sessions = value.sessions.map(s => {
       if (!object(s) || !['practice', 'exam'].includes(s.mode) || !Number.isSafeInteger(s.total) || s.total < 1 || s.total > 10000 ||
           !Number.isSafeInteger(s.score) || s.score < 0 || s.score > s.total || typeof s.date !== 'string' || !Number.isFinite(Date.parse(s.date))) {
         throw new Error('Повреждена история сессий.');
       }
-      return { mode: s.mode, score: s.score, total: s.total, date: new Date(s.date).toISOString() };
+      return { ...s, mode: s.mode, score: s.score, total: s.total, date: new Date(s.date).toISOString() };
     });
     return { cards, sessions };
   }
@@ -56,6 +57,8 @@
     }
     function save(value) {
       const result = validate(value, knownIds);
+      const prior = storage.getItem(KEY);
+      if (prior !== null && storage.getItem('staff-academy-before-cabinet') === null) storage.setItem('staff-academy-before-cabinet', prior);
       storage.setItem(KEY, JSON.stringify(result));
       return result;
     }
@@ -77,7 +80,12 @@
       if (legacyRaw !== null && storage.getItem(BACKUP_KEY) === null) storage.setItem(BACKUP_KEY, legacyRaw);
       return save(result);
     }
-    return { load, save, exportText, parseImport, importText };
+    function exportBackup() {
+      const raw = storage.getItem('staff-academy-before-cabinet');
+      if (raw === null) throw new Error('Резервной копии до обновления пока нет.');
+      return JSON.stringify({app:'staff-academy',schemaVersion:3,progress:JSON.parse(raw)},null,2);
+    }
+    return { load, save, exportText, exportBackup, parseImport, importText };
   }
   return { KEY, LEGACY_KEY, BACKUP_KEY, empty, validate, createStore };
 });

@@ -4,7 +4,7 @@
   const section = document.createElement('section');
   section.className = 'settings';
   section.setAttribute('aria-label', 'Прогресс и обновления');
-  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">4a1fa33d63610326bab1</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
+  section.innerHTML = '<details><summary>Прогресс и приложение</summary><p>Прогресс хранится на этом устройстве. Сохраните копию перед сменой адреса или устройства.</p><div class="tools"><button type="button" id="exportProgress">Сохранить прогресс</button><label class="file-button">Загрузить прогресс<input id="importProgress" type="file" accept=".json,application/json"></label></div><div id="importReview" hidden><p id="importSummary"></p><p>Импорт заменит текущий прогресс. Предыдущая версия останется в резервной копии на этом устройстве.</p><button type="button" id="confirmImport">Подтвердить замену</button><button type="button" id="cancelImport">Отмена</button></div><p>На iPhone: откройте ссылку в Safari → «Поделиться» → «На экран Домой». Импортируйте копию уже внутри приложения, запущенного с новой иконки.</p><p class="muted">Версия: <span id="appVersion">bfd8ef34da394647db0d</span></p></details><p id="storageStatus" role="status" aria-live="polite"></p><div id="updateNotice" hidden><span id="updateText"></span> <button type="button" id="applyUpdate">Обновить приложение</button></div>';
   document.querySelector('main').append(section);
   const $ = id => document.getElementById(id);
   function status(text, error = false) {
@@ -31,11 +31,59 @@
   drawer.setAttribute('aria-labelledby', 'progressHeading');
   drawer.innerHTML = '<div class="drawer-heading"><div><p class="drawer-eyebrow">STAFF АКАДЕМИЯ</p><h2 id="progressHeading">Мой прогресс</h2></div><button type="button" id="closeProgressMenu" aria-label="Закрыть меню">×</button></div><p class="muted">На этом устройстве</p><p id="drawerStorageError" role="status" hidden>Данные недоступны. Проверьте сообщение об ошибке сохранения в приложении.</p><div id="drawerStats"><p class="drawer-learned"><strong id="drawerLearned">0</strong> / <span id="drawerTotal">0</span></p><p class="muted">Карточек с верным последним ответом</p><progress id="drawerMeter" max="1" value="0" aria-label="Прогресс карточек"></progress><dl class="drawer-metrics"><div><dt>Попробовано карточек</dt><dd id="drawerSeen">0</dd></div><div><dt>Пора повторить</dt><dd id="drawerDue">0</dd></div><div><dt>Ещё не открыто</dt><dd id="drawerNew">0</dd></div><div><dt>Завершено занятий*</dt><dd id="drawerSessions">0</dd></div><div><dt>Последний экзамен</dt><dd id="drawerExam">Пока нет</dd></div></dl><p id="drawerLast" class="muted">Начните тренировку — здесь появится ваша сводка.</p><p class="muted">* История хранит последние 40 занятий. Экзамены не меняют прогресс карточек.</p></div><button type="button" id="drawerBackup" class="drawer-backup">Сохранить или перенести прогресс</button><p class="muted">Прогресс сохраняется автоматически в этом браузере. Для переноса на другое устройство сохраните копию. Синхронизации между устройствами нет.</p>';
   document.querySelector('main').append(drawer);
+  const cabinet = document.createElement('section');
+  cabinet.innerHTML = '<nav class="cabinet-tabs" aria-label="Учебный кабинет"><button id="cabOverview">Обзор</button><button id="cabReview">Повторение</button><button id="cabHistory">История</button></nav><div id="cabContent"></div>';
+  drawer.insertBefore(cabinet, $('drawerBackup'));
+  let cabinetTab = 'overview';
+  for (const [id, tab] of [['cabOverview','overview'],['cabReview','review'],['cabHistory','history']]) $(id).onclick = () => { cabinetTab = tab; refreshSummary(); };
+  function renderCabinet(stats) {
+    const data = StaffLearning.summary(questionBank, stats);
+    const content = $('cabContent'); content.replaceChildren();
+    const line = text => { const p = document.createElement('p'); p.textContent = text; content.append(p); };
+    for (const [id, tab] of [['cabOverview','overview'],['cabReview','review'],['cabHistory','history']]) $(id).setAttribute('aria-pressed', String(cabinetTab === tab));
+    if (cabinetTab === 'overview') {
+      const pct = n => (100*n/Math.max(1,data.total)).toLocaleString('ru-RU',{maximumFractionDigits:1});
+      line('Охват материала: '+data.seen+' / '+data.total+' · '+pct(data.seen)+'%');
+      const meter = document.createElement('progress'); meter.max = data.total || 1; meter.value = data.seen; meter.setAttribute('aria-label','Охват материала'); content.append(meter);
+      line('Освоение материала: '+data.mastered+' / '+data.total+' · '+pct(data.mastered)+'%');
+      line('Освоена: минимум 3 верных ответа в 3 разные календарные даты и успешное повторение после интервала от 7 суток. Это рабочая метрика приложения, а не вероятность запоминания.');
+      for (const name of ['Новая','Изучается','Закрепляется','Освоена']) line(name+': '+questionBank.filter(q=>StaffLearning.state(stats.cards[q[5]])===name).length);
+      line('Старые ответы сохранены. Даты успешных повторений учитываются с этого обновления.');
+    } else if (cabinetTab === 'review') {
+      line('К повторению: '+data.due.length+' · В будущем: '+data.future.length);
+      line('Просрочено более суток: '+data.due.filter(id=>stats.cards[id].due<Date.now()-86400000).length);
+      line(data.next?'Ближайшее повторение: '+new Date(data.next).toLocaleString('ru-RU'):'Будущих повторений пока нет.');
+      if (data.due.length) {
+        const button = document.createElement('button'); button.className = 'drawer-backup'; button.textContent = 'Повторить сейчас — '+data.due.length+' карточек';
+        button.onclick = () => { const current = StaffLearning.summary(questionBank, window.StaffUI.load()); if (!current.due.length) { refreshSummary(); return; } drawer.close(); window.dispatchEvent(new CustomEvent('staff-review',{detail:current.due})); }; content.append(button);
+      } else line('Сейчас всё повторено. Следующие карточки появятся позже');
+      for (const [title,ids] of [['Сейчас',data.due],['Запланировано',data.future]]) {
+        const list = document.createElement('details'); const heading = document.createElement('summary'); heading.textContent=title+' · '+ids.length; list.append(heading);
+        for (const id of ids) { const p=document.createElement('p'); p.textContent=questionBank.find(q=>q[5]===id)[1]+' — '+new Date(stats.cards[id].due).toLocaleString('ru-RU'); list.append(p); } content.append(list);
+      }
+    } else {
+      line('История: последние 40 завершённых занятий. Прерванные занятия не считаются завершёнными; ответы тренировок сохраняются сразу.');
+      for(const mode of ['practice','exam']) {
+        line(mode==='exam'?'Экзамены':'Занятия');
+        const records=stats.sessions.filter(s=>s.mode===mode).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+        if(!records.length)line('Пока нет записей');
+        for(const item of records){
+          const details=document.createElement('details'); const heading=document.createElement('summary');
+          const pct=Math.round(item.score/Math.max(1,item.total)*100);
+          heading.textContent=new Date(item.date).toLocaleString('ru-RU')+' · '+pct+'%';details.append(heading);
+          const rows=['ID: '+(item.id||'Нет данных'),'Начало: '+(item.startedAt?new Date(item.startedAt).toLocaleString('ru-RU'):'Нет данных'),'Завершение: '+new Date(item.endedAt||item.date).toLocaleString('ru-RU'),'Первый проход: '+item.score+' / '+item.total+' · ошибок '+(item.total-item.score),'Всего ответов: '+(item.answers??'Нет данных'),'Верных ответов всего: '+(item.right??'Нет данных'),'Ошибок всего: '+(item.errors??'Нет данных'),'Уникальных карточек: '+(item.uniqueCards??'Нет данных')];
+          if(mode==='exam')rows.push('Порог: '+(item.threshold??'Нет данных'), 'Статус: '+(typeof item.threshold==='number'?(pct>=item.threshold?'Сдан':'Не сдан'):'Нет данных о пороге'));
+          for(const text of rows){const p=document.createElement('p');p.textContent=text;details.append(p);}content.append(details);
+        }
+      }
+    }
+  }
   function refreshSummary() {
     const stats = window.StaffUI.load();
     $('drawerStorageError').hidden = !storageError;
     $('drawerStats').hidden = storageError;
     if (storageError) return;
+    renderCabinet(stats);
     const cards = Object.values(stats.cards);
     const learned = cards.filter(card => card.reps > 0).length;
     const exams = stats.sessions.filter(session => session.mode === 'exam');
@@ -52,6 +100,7 @@
     const last = stats.sessions[0];
     $('drawerLast').textContent = last ? 'Последнее занятие: ' + new Date(last.date).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Начните тренировку — здесь появится ваша сводка.';
   }
+  document.addEventListener('visibilitychange', () => { if (drawer.open) refreshSummary(); });
   menuButton.onclick = () => { refreshSummary(); drawer.showModal(); };
   $('closeProgressMenu').onclick = () => drawer.close();
   drawer.onclick = event => { if (event.target === drawer) { const rect = drawer.getBoundingClientRect(); if (event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) drawer.close(); } };
@@ -68,14 +117,17 @@
   window.addEventListener('storage', () => { if (drawer.open) refreshSummary(); });
   let importText = null;
   function clearImport() { importText = null; $('importProgress').value = ''; $('importReview').hidden = true; }
-  $('exportProgress').onclick = () => {
+  const backupButton = document.createElement('button'); backupButton.type='button'; backupButton.textContent='Скачать копию до обновления'; section.querySelector('.tools').append(backupButton);
+  backupButton.onclick=()=>downloadProgress(true);
+  $('exportProgress').onclick = () => downloadProgress(false);
+  function downloadProgress(backup) {
     try {
-      const text = store.exportText();
+      const text = backup ? store.exportBackup() : store.exportText();
       const file = new Blob([text], { type: 'application/json' });
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'staff-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+      link.download = (backup?'staff-backup-':'staff-progress-') + new Date().toISOString().slice(0, 10) + '.json';
       document.body.append(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       status('Копия прогресса подготовлена. Сохраните JSON-файл в «Файлы».');
