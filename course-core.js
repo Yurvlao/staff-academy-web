@@ -8,7 +8,7 @@ function validResult(a){return object(a)&&integer(a.total,100)&&a.total>0&&integ
 function validate(t){
  if(!object(t)||t.version!==1||!object(t.lessons)||Object.keys(t.lessons).length>500)throw Error('Повреждён прогресс теории. Исходные данные сохранены.');
  if(t.lastLessonId!==undefined&&!id(t.lastLessonId))throw Error('Повреждён ID урока.');
- for(const f of ['legacyCocktailsUnlocked','theoryMvp01'])if(t[f]!==undefined&&typeof t[f]!=='boolean')throw Error('Повреждены сведения о переносе теории.');
+ for(const f of ['legacyCocktailsUnlocked','theoryMvp01','coffeeStationV2'])if(t[f]!==undefined&&typeof t[f]!=='boolean')throw Error('Повреждены сведения о переносе теории.');
  for(const [key,r] of Object.entries(t.lessons)){
   if(!id(key)||!object(r)||!date(r.startedAt)||!integer(r.step,1000)||!integer(r.attempts))throw Error('Повреждён урок '+key+'.');
   for(const f of ['completedAt','studiedAt'])if(r[f]!==undefined&&!date(r[f]))throw Error('Повреждены даты урока.');
@@ -23,17 +23,18 @@ function validate(t){
  return clone(t);
 }
 function migrate(t){t=validate(t);if(t.theoryMvp01)return t;for(const [old,key] of Object.entries(aliases)){const r=t.lessons[old];if(r&&!t.lessons[key]){const next=clone(r);next.originLessonId=old;next.mvpRevision=REVISION;next.step=0;delete next.studiedAt;delete next.practice;if(next.draft){next.legacyDrafts=[...(next.legacyDrafts||[]),clone(next.draft)];delete next.draft;}t.lessons[key]=next;}}if(aliases[t.lastLessonId])t.lastLessonId=aliases[t.lastLessonId];t.theoryMvp01=true;return t;}
+function migrateCoffee(t){t=validate(t);const r=t.lessons['theory-coffee-v1'];if(!r||t.coffeeStationV2)return t;if(r.coffeeRevision!=='v2'){r.coffeeV1Snapshot=clone(r);r.step=Math.min(r.studiedAt?7:6,Math.max(0,r.step-1));delete r.draft;delete r.practice;}r.coffeeRevision='v2';t.coffeeStationV2=true;return t;}
 function recordFor(t,key){return t?.lessons?.[aliases[key]||key]||t?.lessons?.[key];}
 function completed(t,key){return !!recordFor(t,key)?.completedAt;}
 function status(t,lesson,course){if(completed(t,lesson.id))return 'completed';if(!(lesson.requires||[]).every(key=>completed(t,key)))return 'locked';return recordFor(t,lesson.id)?'in_progress':'available';}
 function get(t,key,course){const l=course.lessons.find(l=>l.id===key);if(!l||status(t,l,course)==='locked')throw Error('Сначала завершите предыдущий урок.');return l;}
-function prepare(t,course){return course.id==='staff-theory-mvp01'?migrate(t||empty()):validate(t||empty());}
-function open(t,key,course,now=new Date().toISOString()){t=prepare(t,course);get(t,key,course);t.lessons[key]??={startedAt:now,step:0,attempts:0};t.lastLessonId=key;return t;}
+function prepare(t,course){return course.id==='staff-theory-mvp01'?migrateCoffee(migrate(t||empty())):validate(t||empty());}
+function open(t,key,course,now=new Date().toISOString()){t=prepare(t,course);get(t,key,course);if(!t.lessons[key]){t.lessons[key]={startedAt:now,step:0,attempts:0};if(key==='theory-coffee-v1'){t.lessons[key].coffeeRevision='v2';t.coffeeStationV2=true;}}t.lastLessonId=key;return t;}
 function advance(t,key,course,now=new Date().toISOString()){t=prepare(t,course);const l=get(t,key,course),r=t.lessons[key];if(!r)throw Error('Сначала откройте урок.');r.step=Math.min(r.step+1,l.screens.length);if(r.step===l.screens.length)r.studiedAt??=now;return t;}
 function restudy(t,key,course){t=prepare(t,course);get(t,key,course);const r=t.lessons[key];r.step=0;delete r.studiedAt;if(r.practice){r.practiceHistory=[...(r.practiceHistory||[]),r.practice].slice(-20);delete r.practice;}if(r.draft){r.legacyDrafts=[...(r.legacyDrafts||[]),r.draft];delete r.draft;}return t;}
 function shuffle(a,random=Math.random){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function question(t,key,course,kind='check'){const l=get(t,key,course),r=t.lessons[key];if(kind==='practice')return (l.practice||[])[r.practice?.answers.length||0];const d=r.draft;if(!d)return null;return d.questionIds?l.questions.find(q=>q.id===d.questionIds[d.answers.length]):l.questions[d.answers.length];}
-function grade(q,choice){if(q.type==='coffee'){const m=typeof module==='object'&&module.exports?require('./coffee-core'):globalThis.StaffCoffee;return m.grade(q.recipeId,choice);}if(q.type==='ingredients'){if(!Array.isArray(choice)||!validChoice(choice)||choice.some(x=>!q.options.includes(x)))throw Error('Неверный выбор ингредиентов.');const missing=q.required.filter(x=>!choice.includes(x)),extra=choice.filter(x=>!q.required.includes(x));return {correct:!missing.length&&!extra.length,missing,extra};}if(!integer(choice,3))throw Error('Выберите один ответ.');return {correct:choice===q.answer,missing:[],extra:[]};}
+function grade(q,choice){if(q.type==='coffee'){const m=typeof module==='object'&&module.exports?require('./coffee-core'):globalThis.StaffCoffee;return m.grade(q.recipeId,choice,q.grading||'strict');}if(q.type==='ingredients'){if(!Array.isArray(choice)||!validChoice(choice)||choice.some(x=>!q.options.includes(x)))throw Error('Неверный выбор ингредиентов.');const missing=q.required.filter(x=>!choice.includes(x)),extra=choice.filter(x=>!q.required.includes(x));return {correct:!missing.length&&!extra.length,missing,extra};}if(!integer(choice,3))throw Error('Выберите один ответ.');return {correct:choice===q.answer,missing:[],extra:[]};}
 function coffeeError(r,q,choice,g,now){if(q.type==='coffee'&&!g.correct)r.coffeeErrors=[...(Array.isArray(r.coffeeErrors)?r.coffeeErrors:[]),{recipeId:q.recipeId,choice:[...choice],at:now}].slice(-100);}
 function reinforce(t,key,choice,course,expected,now=new Date().toISOString()){
  t=prepare(t,course);const l=get(t,key,course),r=t.lessons[key];if(!r?.studiedAt)throw Error('Сначала изучите материал.');const q=question(t,key,course,'practice');if(!q||q.id!==expected)throw Error('Этот ответ уже принят.');const g=grade(q,choice);coffeeError(r,q,choice,g,now);r.practice??={answers:[]};r.practice.answers.push({questionId:q.id,choice,correct:g.correct});if(r.practice.answers.length===(l.practice||[]).length)r.practice.completedAt=now;return {theory:t,...g,practiceDone:!!r.practice.completedAt,result:null};
@@ -52,5 +53,5 @@ function resume(t,course){const last=course.lessons.find(l=>l.id===t?.lastLesson
 function chapterCompleted(t,course,key){const ls=course.lessons.filter(l=>l.chapter===key);return course.chapters.find(c=>c.id===key)?.published===true&&ls.length>0&&ls.every(l=>completed(t,l.id));}
 function legacyMixes(data){return Object.values(data?.mixes||{}).some(m=>m.attempts>0||m.studyAttempts>0);}
 function cocktailsAllowed(data,course){return !!data?.theory?.legacyCocktailsUnlocked||legacyMixes(data)||chapterCompleted(data?.theory,course,'alcoholic-cocktails');}
-return {THRESHOLD,REVISION,aliases,empty,validate,migrate,recordFor,completed,status,open,advance,restudy,shuffle,question,grade,reinforce,begin,answer,resume,chapterCompleted,legacyMixes,cocktailsAllowed};
+return {THRESHOLD,REVISION,aliases,empty,validate,migrate,migrateCoffee,recordFor,completed,status,open,advance,restudy,shuffle,question,grade,reinforce,begin,answer,resume,chapterCompleted,legacyMixes,cocktailsAllowed};
 });

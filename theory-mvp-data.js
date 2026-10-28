@@ -1446,53 +1446,47 @@
       "requires": [
         "theory-tea-v1"
       ],
-      "revision": "theory-coffee-v1",
+      "revision": "coffee-station-v2",
       "checkSize": 5,
       "screens": [
         {
           "title": "Всё начинается с эспрессо",
           "lines": [
-            "Эспрессо — основа большинства кофейных напитков нашего меню. Один шот готовится из одной закладки 9 г молотого кофе и даёт 30 мл напитка."
+            "Эспрессо — основа кофейных напитков. Один шот эспрессо — 30 мл. Для его приготовления используется одна закладка 9 г молотого кофе."
           ]
         },
         {
-          "kind": "coffee",
-          "title": "Эспрессо",
-          "recipeId": "espresso",
-          "lines": []
-        },
-        {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Американо",
           "recipeId": "americano",
           "lines": []
         },
         {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Капучино",
           "recipeId": "cappuccino",
           "lines": []
         },
         {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Флэт уайт",
           "recipeId": "flat-white",
           "lines": []
         },
         {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Кофе по-венски",
           "recipeId": "viennese",
           "lines": []
         },
         {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Капучино дольче",
           "recipeId": "dolce",
           "lines": []
         },
         {
-          "kind": "coffee",
+          "kind": "coffee-demo",
           "title": "Латте макиато",
           "recipeId": "latte",
           "lines": []
@@ -1500,102 +1494,114 @@
       ],
       "practice": [
         {
-          "id": "coffee-practice-espresso",
-          "type": "coffee",
-          "recipeId": "espresso",
-          "text": "Эспрессо",
-          "options": [],
-          "explanation": "Эспрессо"
-        },
-        {
-          "id": "coffee-practice-americano",
+          "id": "coffee-v2-americano",
           "type": "coffee",
           "recipeId": "americano",
           "text": "Американо",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Горячая вода"
+          "explanation": "Шот эспрессо + кипяток."
         },
         {
-          "id": "coffee-practice-cappuccino",
+          "id": "coffee-v2-cappuccino",
           "type": "coffee",
           "recipeId": "cappuccino",
           "text": "Капучино",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Вспененное молоко · 120 мл"
+          "explanation": "Шот эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-practice-flat-white",
+          "id": "coffee-v2-flat-white",
           "type": "coffee",
           "recipeId": "flat-white",
           "text": "Флэт уайт",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Эспрессо + Вспененное молоко · 90 мл"
+          "explanation": "Двойной эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-practice-viennese",
+          "id": "coffee-v2-viennese",
           "type": "coffee",
           "recipeId": "viennese",
           "text": "Кофе по-венски",
+          "grading": "composition",
           "options": [],
-          "explanation": "Эспрессо + Взбитые сливки + Шоколадная крошка"
+          "explanation": "Эспрессо + сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-practice-dolce",
+          "id": "coffee-v2-dolce",
           "type": "coffee",
           "recipeId": "dolce",
           "text": "Капучино дольче",
+          "grading": "composition",
           "options": [],
-          "explanation": "Шоколадный сироп · 5 мл + Эспрессо + Вспененное молоко · 120 мл + Взбитые сливки + Шоколадная крошка"
+          "explanation": "Капучино + шоколадный сироп + сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-practice-latte",
+          "id": "coffee-v2-latte",
           "type": "coffee",
           "recipeId": "latte",
           "text": "Латте макиато",
+          "grading": "composition",
           "options": [],
-          "explanation": "Вспененное молоко · 120 мл + Вспененное молоко · 120 мл + Эспрессо"
+          "explanation": "Две порции вспененного молока + шот эспрессо."
         }
       ],
       "questions": [
         {
-          "id": "coffee-check-0",
-          "type": "coffee",
-          "recipeId": "espresso",
-          "text": "Эспрессо",
-          "options": [],
-          "explanation": "Эспрессо"
-        },
-        {
-          "id": "coffee-check-1",
+          "id": "coffee-v2-americano",
           "type": "coffee",
           "recipeId": "americano",
           "text": "Американо",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Горячая вода"
+          "explanation": "Шот эспрессо + кипяток."
         },
         {
-          "id": "coffee-check-2",
+          "id": "coffee-v2-cappuccino",
           "type": "coffee",
           "recipeId": "cappuccino",
           "text": "Капучино",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Вспененное молоко · 120 мл"
+          "explanation": "Шот эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-check-3",
+          "id": "coffee-v2-flat-white",
           "type": "coffee",
           "recipeId": "flat-white",
           "text": "Флэт уайт",
+          "grading": "strict",
           "options": [],
-          "explanation": "Эспрессо + Эспрессо + Вспененное молоко · 90 мл"
+          "explanation": "Двойной эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-check-4",
+          "id": "coffee-v2-viennese",
           "type": "coffee",
-          "recipeId": "espresso",
-          "text": "Эспрессо",
+          "recipeId": "viennese",
+          "text": "Кофе по-венски",
+          "grading": "composition",
           "options": [],
-          "explanation": "Эспрессо"
+          "explanation": "Эспрессо + сливки + шоколадная крошка."
+        },
+        {
+          "id": "coffee-v2-dolce",
+          "type": "coffee",
+          "recipeId": "dolce",
+          "text": "Капучино дольче",
+          "grading": "composition",
+          "options": [],
+          "explanation": "Капучино + шоколадный сироп + сливки + шоколадная крошка."
+        },
+        {
+          "id": "coffee-v2-latte",
+          "type": "coffee",
+          "recipeId": "latte",
+          "text": "Латте макиато",
+          "grading": "composition",
+          "options": [],
+          "explanation": "Две порции вспененного молока + шот эспрессо."
         }
       ]
     }
