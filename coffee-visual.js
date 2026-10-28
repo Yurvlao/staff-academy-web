@@ -27,7 +27,7 @@ return `<svg class="coffee-glass" data-cup="${k}" data-liquid-ml="${volume}" vie
 <mask id="${id}-foam-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024" style="mask-type:luminance">${image('masks/'+k+'_foam_region')}</mask>
 <clipPath id="${id}-bounds"><rect width="1024" height="1024"/></clipPath></defs>
 ${image('cups/'+k+'_shadow')}${image('cups/'+k+'_back')}<g mask="url(#${id}-mask)" class="coffee-fluid">${liquid}</g>${creamBody}${image('cups/'+k+'_front')}${foamArt}<g class="coffee-topping">${topping}</g></svg>`;}
-function ingredient(key){const asset=key.startsWith('milk')?'milk':key==='jameson'?'whiskey':key;return `<svg viewBox="0 0 1024 1024" aria-hidden="true">${image('ingredients/'+asset)}</svg>`;}
+function ingredient(key){const asset=key.startsWith('milk')?'milk':key==='jameson'?'whiskey':key;const bounds=asset==='cream'?'330 240 340 170':asset==='chocolate'?'365 280 270 115':asset==='beans'?'405 225 200 95':'280 230 460 460';return `<svg viewBox="${bounds}" aria-hidden="true">${image('ingredients/'+asset)}</svg>`;}
 const preloaded=new Set();function preload(recipeId){if(!root.Image)return;const M=root.StaffCoffee,idx=M.recipes.findIndex(r=>r.id===recipeId),cups=new Set([family(M.recipes[Math.max(0,idx)]),family(M.recipes[(Math.max(0,idx)+1)%M.recipes.length])]);for(const file of A.files){if(!file.includes('/ingredients/')&&![...cups].some(k=>file.includes('/'+k+'_')))continue;if(preloaded.has(file))continue;preloaded.add(file);const im=new root.Image();im.src=file;}}
 const api={cup,ingredient,surface,family,preload};if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffCoffeeVisual=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
