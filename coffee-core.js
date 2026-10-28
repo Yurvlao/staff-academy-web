@@ -1,0 +1,17 @@
+(function(root){'use strict';
+const parts={espresso:{name:'Эспрессо',ml:30,kind:'coffee'},water:{name:'Горячая вода',ml:120,kind:'water'},milk120:{name:'Вспененное молоко · 120 мл',ml:120,kind:'milk'},milk90:{name:'Вспененное молоко · 90 мл',ml:90,kind:'milk'},syrup:{name:'Шоколадный сироп · 5 мл',ml:5,kind:'syrup'},cream:{name:'Взбитые сливки',ml:0,kind:'cream'},chocolate:{name:'Шоколадная крошка',ml:0,kind:'chocolate'}};
+const recipes=[
+{id:'espresso',name:'Эспрессо',size:'S',capacity:50,actions:['espresso'],assessed:true},
+{id:'americano',name:'Американо',size:'M',capacity:190,actions:['espresso','water'],assessed:true},
+{id:'cappuccino',name:'Капучино',size:'M',capacity:190,actions:['espresso','milk120'],assessed:true},
+{id:'flat-white',name:'Флэт уайт',size:'M',capacity:190,actions:['espresso','espresso','milk90'],assessed:true},
+{id:'viennese',name:'Кофе по-венски',size:'L',capacity:240,actions:['espresso','cream','chocolate'],assessed:false,note:'Учебная модель: вместимость чашки, 120 мл сливок и 5 г посыпки предварительные. Количества топпингов не оцениваются.'},
+{id:'dolce',name:'Капучино дольче',size:'L',capacity:280,actions:['syrup','espresso','milk120','cream','chocolate'],assessed:false,note:'Учебная модель: вместимость чашки, 50 мл сливок и 5 г посыпки предварительные. Количества топпингов не оцениваются.'},
+{id:'latte',name:'Латте макиато',size:'L',capacity:300,actions:['milk120','milk120','espresso'],assessed:false,ordered:true,note:'Учебная модель: молоко 120 + 120 мл, эспрессо 30 мл; вместимость чашки предварительная.'}];
+function recipe(id){const r=recipes.find(r=>r.id===id);if(!r)throw Error('Неизвестный напиток.');return r;}
+function decode(choice){if(!Array.isArray(choice)||choice.length>30)throw Error('Неверная сборка кофе.');return choice.map((s,i)=>{if(typeof s!=='string'||!s.startsWith(i+':')||!parts[s.slice(s.indexOf(':')+1)])throw Error('Неверное действие кофейной станции.');return s.slice(s.indexOf(':')+1);});}
+const encode=actions=>actions.map((x,i)=>i+':'+x);
+function grade(id,choice){const r=recipe(id),actions=decode(choice),counts=a=>a.reduce((v,k)=>(v[k]=(v[k]||0)+1,v),{}),want=counts(r.actions),got=counts(actions),errors=[];for(const k of Object.keys(parts)){if((got[k]||0)<(want[k]||0))errors.push('Добавьте: '+parts[k].name+' × '+((want[k]||0)-(got[k]||0)));if((got[k]||0)>(want[k]||0))errors.push('Лишнее: '+parts[k].name+' × '+((got[k]||0)-(want[k]||0)));}if(r.ordered&&actions.join('|')!==r.actions.join('|')&&!errors.length)errors.push('Сначала две порции молока, затем эспрессо.');return {correct:!errors.length,missing:errors,extra:[]};}
+function layers(id,actions){const r=recipe(id);return actions.filter(k=>parts[k].ml>0).sort((a,b)=>(a==='syrup'?-1:0)-(b==='syrup'?-1:0)).map(k=>({key:k,kind:parts[k].kind,ml:parts[k].ml,percent:parts[k].ml/r.capacity*100}));}
+const api={parts,recipes,recipe,decode,encode,grade,layers};if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffCoffee=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
