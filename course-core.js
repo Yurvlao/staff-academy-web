@@ -24,12 +24,13 @@ function validate(t){
 }
 function migrate(t){t=validate(t);if(t.theoryMvp01)return t;for(const [old,key] of Object.entries(aliases)){const r=t.lessons[old];if(r&&!t.lessons[key]){const next=clone(r);next.originLessonId=old;next.mvpRevision=REVISION;next.step=0;delete next.studiedAt;delete next.practice;if(next.draft){next.legacyDrafts=[...(next.legacyDrafts||[]),clone(next.draft)];delete next.draft;}t.lessons[key]=next;}}if(aliases[t.lastLessonId])t.lastLessonId=aliases[t.lastLessonId];t.theoryMvp01=true;return t;}
 function migrateCoffee(t){t=validate(t);const r=t.lessons['theory-coffee-v1'];if(!r||t.coffeeStationV2)return t;if(r.coffeeRevision!=='v2'){r.coffeeV1Snapshot=clone(r);r.step=Math.min(r.studiedAt?7:6,Math.max(0,r.step-1));delete r.draft;delete r.practice;}r.coffeeRevision='v2';t.coffeeStationV2=true;return t;}
+function migrateCoffee22(t){t=migrateCoffee(t);const r=t.lessons['theory-coffee-v1'];if(!r||r.coffeeRevision==='v22')return t;r.coffeeV21Snapshot=clone(r);r.step=r.studiedAt?1:0;delete r.practice;delete r.draft;r.coffeeRevision='v22';return t;}
 function recordFor(t,key){return t?.lessons?.[aliases[key]||key]||t?.lessons?.[key];}
 function completed(t,key){return !!recordFor(t,key)?.completedAt;}
 function status(t,lesson,course){if(completed(t,lesson.id))return 'completed';if(!(lesson.requires||[]).every(key=>completed(t,key)))return 'locked';return recordFor(t,lesson.id)?'in_progress':'available';}
 function get(t,key,course){const l=course.lessons.find(l=>l.id===key);if(!l||status(t,l,course)==='locked')throw Error('Сначала завершите предыдущий урок.');return l;}
-function prepare(t,course){return course.id==='staff-theory-mvp01'?migrateCoffee(migrate(t||empty())):validate(t||empty());}
-function open(t,key,course,now=new Date().toISOString()){t=prepare(t,course);get(t,key,course);if(!t.lessons[key]){t.lessons[key]={startedAt:now,step:0,attempts:0};if(key==='theory-coffee-v1'){t.lessons[key].coffeeRevision='v2';t.coffeeStationV2=true;}}t.lastLessonId=key;return t;}
+function prepare(t,course){return course.id==='staff-theory-mvp01'?migrateCoffee22(migrate(t||empty())):validate(t||empty());}
+function open(t,key,course,now=new Date().toISOString()){t=prepare(t,course);get(t,key,course);if(!t.lessons[key]){t.lessons[key]={startedAt:now,step:0,attempts:0};if(key==='theory-coffee-v1'){t.lessons[key].coffeeRevision='v22';t.coffeeStationV2=true;}}t.lastLessonId=key;return t;}
 function advance(t,key,course,now=new Date().toISOString()){t=prepare(t,course);const l=get(t,key,course),r=t.lessons[key];if(!r)throw Error('Сначала откройте урок.');r.step=Math.min(r.step+1,l.screens.length);if(r.step===l.screens.length)r.studiedAt??=now;return t;}
 function restudy(t,key,course){t=prepare(t,course);get(t,key,course);const r=t.lessons[key];r.step=0;delete r.studiedAt;if(r.practice){r.practiceHistory=[...(r.practiceHistory||[]),r.practice].slice(-20);delete r.practice;}if(r.draft){r.legacyDrafts=[...(r.legacyDrafts||[]),r.draft];delete r.draft;}return t;}
 function shuffle(a,random=Math.random){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -53,5 +54,5 @@ function resume(t,course){const last=course.lessons.find(l=>l.id===t?.lastLesson
 function chapterCompleted(t,course,key){const ls=course.lessons.filter(l=>l.chapter===key);return course.chapters.find(c=>c.id===key)?.published===true&&ls.length>0&&ls.every(l=>completed(t,l.id));}
 function legacyMixes(data){return Object.values(data?.mixes||{}).some(m=>m.attempts>0||m.studyAttempts>0);}
 function cocktailsAllowed(data,course){return !!data?.theory?.legacyCocktailsUnlocked||legacyMixes(data)||chapterCompleted(data?.theory,course,'alcoholic-cocktails');}
-return {THRESHOLD,REVISION,aliases,empty,validate,migrate,migrateCoffee,recordFor,completed,status,open,advance,restudy,shuffle,question,grade,reinforce,begin,answer,resume,chapterCompleted,legacyMixes,cocktailsAllowed};
+return {THRESHOLD,REVISION,aliases,empty,validate,migrate,migrateCoffee,migrateCoffee22,recordFor,completed,status,open,advance,restudy,shuffle,question,grade,reinforce,begin,answer,resume,chapterCompleted,legacyMixes,cocktailsAllowed};
 });

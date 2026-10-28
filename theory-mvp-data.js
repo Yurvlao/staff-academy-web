@@ -1446,55 +1446,19 @@
       "requires": [
         "theory-tea-v1"
       ],
-      "revision": "coffee-station-v2",
+      "revision": "coffee-station-v22",
       "checkSize": 5,
       "screens": [
         {
           "title": "Всё начинается с эспрессо",
           "lines": [
-            "Эспрессо — основа кофейных напитков. Один шот эспрессо — 30 мл. Для его приготовления используется одна закладка 9 г молотого кофе."
+            "Эспрессо — основа кофейных напитков. Один шот — 30 мл. Для приготовления используется одна закладка 9 г молотого кофе."
           ]
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Американо",
-          "recipeId": "americano",
-          "lines": []
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Капучино",
-          "recipeId": "cappuccino",
-          "lines": []
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Флэт уайт",
-          "recipeId": "flat-white",
-          "lines": []
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Кофе по-венски",
-          "recipeId": "viennese",
-          "lines": []
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Капучино дольче",
-          "recipeId": "dolce",
-          "lines": []
-        },
-        {
-          "kind": "coffee-demo",
-          "title": "Латте макиато",
-          "recipeId": "latte",
-          "lines": []
         }
       ],
       "practice": [
         {
-          "id": "coffee-v2-americano",
+          "id": "coffee-v22-americano",
           "type": "coffee",
           "recipeId": "americano",
           "text": "Американо",
@@ -1503,7 +1467,7 @@
           "explanation": "Шот эспрессо + кипяток."
         },
         {
-          "id": "coffee-v2-cappuccino",
+          "id": "coffee-v22-cappuccino",
           "type": "coffee",
           "recipeId": "cappuccino",
           "text": "Капучино",
@@ -1512,7 +1476,7 @@
           "explanation": "Шот эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-v2-flat-white",
+          "id": "coffee-v22-flat-white",
           "type": "coffee",
           "recipeId": "flat-white",
           "text": "Флэт уайт",
@@ -1521,16 +1485,16 @@
           "explanation": "Двойной эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-v2-viennese",
+          "id": "coffee-v22-viennese",
           "type": "coffee",
           "recipeId": "viennese",
           "text": "Кофе по-венски",
           "grading": "composition",
           "options": [],
-          "explanation": "Эспрессо + сливки + шоколадная крошка."
+          "explanation": "Американо + взбитые сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-v2-dolce",
+          "id": "coffee-v22-dolce",
           "type": "coffee",
           "recipeId": "dolce",
           "text": "Капучино дольче",
@@ -1539,18 +1503,27 @@
           "explanation": "Капучино + шоколадный сироп + сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-v2-latte",
+          "id": "coffee-v22-latte",
           "type": "coffee",
           "recipeId": "latte",
           "text": "Латте макиато",
           "grading": "composition",
           "options": [],
           "explanation": "Две порции вспененного молока + шот эспрессо."
+        },
+        {
+          "id": "coffee-v22-irish",
+          "type": "coffee",
+          "recipeId": "irish",
+          "text": "Кофе по-ирландски",
+          "grading": "composition",
+          "options": [],
+          "explanation": "Американо + Виски Jameson + взбитые сливки + три кофейных зерна."
         }
       ],
       "questions": [
         {
-          "id": "coffee-v2-americano",
+          "id": "coffee-v22-americano",
           "type": "coffee",
           "recipeId": "americano",
           "text": "Американо",
@@ -1559,7 +1532,7 @@
           "explanation": "Шот эспрессо + кипяток."
         },
         {
-          "id": "coffee-v2-cappuccino",
+          "id": "coffee-v22-cappuccino",
           "type": "coffee",
           "recipeId": "cappuccino",
           "text": "Капучино",
@@ -1568,7 +1541,7 @@
           "explanation": "Шот эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-v2-flat-white",
+          "id": "coffee-v22-flat-white",
           "type": "coffee",
           "recipeId": "flat-white",
           "text": "Флэт уайт",
@@ -1577,16 +1550,16 @@
           "explanation": "Двойной эспрессо + вспененное молоко."
         },
         {
-          "id": "coffee-v2-viennese",
+          "id": "coffee-v22-viennese",
           "type": "coffee",
           "recipeId": "viennese",
           "text": "Кофе по-венски",
           "grading": "composition",
           "options": [],
-          "explanation": "Эспрессо + сливки + шоколадная крошка."
+          "explanation": "Американо + взбитые сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-v2-dolce",
+          "id": "coffee-v22-dolce",
           "type": "coffee",
           "recipeId": "dolce",
           "text": "Капучино дольче",
@@ -1595,13 +1568,22 @@
           "explanation": "Капучино + шоколадный сироп + сливки + шоколадная крошка."
         },
         {
-          "id": "coffee-v2-latte",
+          "id": "coffee-v22-latte",
           "type": "coffee",
           "recipeId": "latte",
           "text": "Латте макиато",
           "grading": "composition",
           "options": [],
           "explanation": "Две порции вспененного молока + шот эспрессо."
+        },
+        {
+          "id": "coffee-v22-irish",
+          "type": "coffee",
+          "recipeId": "irish",
+          "text": "Кофе по-ирландски",
+          "grading": "composition",
+          "options": [],
+          "explanation": "Американо + Виски Jameson + взбитые сливки + три кофейных зерна."
         }
       ]
     }
