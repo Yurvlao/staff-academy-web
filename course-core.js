@@ -27,7 +27,7 @@ function migrateCoffee(t){t=validate(t);const r=t.lessons['theory-coffee-v1'];if
 function migrateCoffee22(t){t=migrateCoffee(t);const r=t.lessons['theory-coffee-v1'];if(!r||r.coffeeRevision==='v22')return t;r.coffeeV21Snapshot=clone(r);r.step=r.studiedAt?1:0;delete r.practice;delete r.draft;r.coffeeRevision='v22';return t;}
 function recordFor(t,key){return t?.lessons?.[aliases[key]||key]||t?.lessons?.[key];}
 function completed(t,key){return !!recordFor(t,key)?.completedAt;}
-function status(t,lesson,course){if(completed(t,lesson.id))return 'completed';if(!(lesson.requires||[]).every(key=>completed(t,key)))return 'locked';return recordFor(t,lesson.id)?'in_progress':'available';}
+function status(t,lesson,course){if(completed(t,lesson.id))return 'completed';if(recordFor(t,lesson.id))return 'in_progress';if(!(lesson.requires||[]).every(key=>completed(t,key)))return 'locked';return 'available';}
 function get(t,key,course){const l=course.lessons.find(l=>l.id===key);if(!l||status(t,l,course)==='locked')throw Error('Сначала завершите предыдущий урок.');return l;}
 function prepare(t,course){return course.id==='staff-theory-mvp01'?migrateCoffee22(migrate(t||empty())):validate(t||empty());}
 function open(t,key,course,now=new Date().toISOString()){t=prepare(t,course);get(t,key,course);if(!t.lessons[key]){t.lessons[key]={startedAt:now,step:0,attempts:0};if(key==='theory-coffee-v1'){t.lessons[key].coffeeRevision='v22';t.coffeeStationV2=true;}}t.lastLessonId=key;return t;}
