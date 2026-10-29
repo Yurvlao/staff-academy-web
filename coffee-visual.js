@@ -2,7 +2,17 @@
 const family=r=>r.id==='latte'?'TALL':r.id==='irish'?'IRISH':r.size==='M'?'M':'L';
 function surface(r,ml){const g=A.geometry[family(r)],f=Math.max(0,Math.min(1,ml/r.capacity)),curve=g.fill_curve;for(let i=1;i<curve.length;i++){const a=curve[i-1],b=curve[i];if(f<=b.volume_fraction){const t=(f-a.volume_fraction)/(b.volume_fraction-a.volume_fraction);return {y:a.surface_y+(b.surface_y-a.surface_y)*t,w:a.surface_half_width+(b.surface_half_width-a.surface_half_width)*t};}}return {y:g.top_y,w:g.top_half_width};}
 function image(path,attrs=''){return `<image href="${base+path}.webp" x="0" y="0" width="1024" height="1024" ${attrs}/>`;}
-function cup(r,actions){const M=typeof module==='object'&&module.exports?require('./coffee-core'):root.StaffCoffee,k=family(r),g=A.geometry[k],id='cv'+(++serial);let layers=M.layers(r.id,actions).map(l=>({...l}));
+// Read-only presentation: the existing recipe grader remains authoritative.
+function flatWhiteState(actions){
+ const espresso=actions.filter(k=>k==='espresso').length,milk=actions.filter(k=>k==='milk90').length,invalid=actions.some(k=>!['espresso','milk90'].includes(k))||espresso>2||milk>1;
+ const partial=espresso>=2?'double':espresso===1?'single':'empty';
+ if(invalid)return {key:partial,status:'invalid',caption:'Неверный состав · отмени лишний ингредиент'};
+ if(espresso===2&&milk===1)return {key:'ready',status:'ready',caption:''};
+ if(milk)return {key:partial,status:'incomplete',caption:'Сборка ещё не завершена'};
+ return {key:partial,status:actions.length?'building':'empty',caption:''};
+}
+function flatWhiteCup(actions){const s=flatWhiteState(actions),M=typeof module==='object'&&module.exports?require('./coffee-core'):root.StaffCoffee,ml=actions.reduce((n,k)=>n+(M.parts[k]?.ml||0),0);return `<svg class="coffee-glass coffee-frame-cup" data-frame="${s.key}" data-frame-status="${s.status}" data-liquid-ml="${ml}" viewBox="0 160 1254 960" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><image href="${A.flatWhiteFrames[s.key]}" x="0" y="0" width="1254" height="1254" preserveAspectRatio="xMidYMid meet"/></svg>`;}
+function cup(r,actions){if(r.id==='flat-white')return flatWhiteCup(actions);const M=typeof module==='object'&&module.exports?require('./coffee-core'):root.StaffCoffee,k=family(r),g=A.geometry[k],id='cv'+(++serial);let layers=M.layers(r.id,actions).map(l=>({...l}));
 // Water and espresso mix; whiskey remains a separate, measured component.
 if(actions.includes('water')&&actions.includes('espresso')&&!actions.some(a=>a.startsWith('milk'))){const combined=layers.filter(l=>l.kind==='coffee'||l.kind==='water').reduce((n,l)=>n+l.ml,0);layers=[{kind:'water',ml:combined},...layers.filter(l=>l.kind!=='coffee'&&l.kind!=='water')];}
 // Reserve foam from the existing milk volume rather than adding volume twice.
@@ -28,6 +38,6 @@ return `<svg class="coffee-glass" data-cup="${k}" data-liquid-ml="${volume}" vie
 <clipPath id="${id}-bounds"><rect width="1024" height="1024"/></clipPath></defs>
 ${image('cups/'+k+'_shadow')}${image('cups/'+k+'_back')}<g mask="url(#${id}-mask)" class="coffee-fluid">${liquid}</g>${creamBody}${image('cups/'+k+'_front')}${foamArt}<g class="coffee-topping">${topping}</g></svg>`;}
 function ingredient(key){const path=A.ingredientIcons[key];if(!path)return '';return `<svg viewBox="0 0 512 512" aria-hidden="true"><image href="${path}" x="0" y="0" width="512" height="512"/></svg>`;}
-const preloaded=new Set();function preload(recipeId){if(!root.Image)return;const M=root.StaffCoffee,idx=M.recipes.findIndex(r=>r.id===recipeId),cups=new Set([family(M.recipes[Math.max(0,idx)]),family(M.recipes[(Math.max(0,idx)+1)%M.recipes.length])]);for(const file of A.files){if(!file.includes('/icons-v24/')&&![...cups].some(k=>file.includes('/'+k+'_')))continue;if(preloaded.has(file))continue;preloaded.add(file);const im=new root.Image();im.src=file;}}
-const api={cup,ingredient,surface,family,preload};if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffCoffeeVisual=api;
+const preloaded=new Set();function preload(recipeId){if(!root.Image)return;const M=root.StaffCoffee,idx=M.recipes.findIndex(r=>r.id===recipeId),cups=new Set([family(M.recipes[Math.max(0,idx)]),family(M.recipes[(Math.max(0,idx)+1)%M.recipes.length])]);for(const file of A.files){const frame=file.includes('/flat-white-frames-v30/');if(frame&&![M.recipes[Math.max(0,idx)].id,M.recipes[(Math.max(0,idx)+1)%M.recipes.length].id].includes('flat-white'))continue;if(!frame&&!file.includes('/icons-v24/')&&![...cups].some(k=>file.includes('/'+k+'_')))continue;if(preloaded.has(file))continue;preloaded.add(file);const im=new root.Image();im.src=file;}}
+const api={cup,ingredient,surface,family,preload,flatWhiteState};if(typeof module==='object'&&module.exports)module.exports=api;else root.StaffCoffeeVisual=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
